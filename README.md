@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Shuleni — Frontend
 
 React + Vite + Tailwind v4 frontend for **Shuleni**, an online school platform.
@@ -70,3 +71,6 @@ swap it out for real API calls as the backend comes online.
 - State management: currently local component state / hooks only. Bring in
   Redux Toolkit slices per the project brief once shared state (current
   user, current school) is needed across more screens.
+=======
+# Shuleni-frontend
+>>>>>>> 2f9ff3470ab48e71c5b9707e2723b3c7252183cc
