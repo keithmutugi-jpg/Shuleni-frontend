@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------
+   Shuleni design tokens
+   Derived from the "Chat interface wireframe" Figma file: a quiet,
+   monochrome, low-fidelity system — black/white/gray only, dotted
+   canvas background, pill/rounded controls, uppercase tracked labels.
+   Keep every screen inside this palette; no color accents.
+--------------------------------------------------------------------- */
+:root {
+  --sh-bg: #eef1f5;
+  --sh-dot: #c9d0da;
+  --sh-surface: #ffffff;
+  --sh-border: #e6e8ec;
+  --sh-border-strong: #d8dbe1;
+  --sh-ink: #101113;
+  --sh-ink-soft: #6b7078;
+  --sh-ink-faint: #9aa0aa;
+  --sh-black: #0c0d0e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--sh-ink);
+  background-color: var(--sh-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dotted canvas background used behind every screen */
+.sh-canvas {
+  min-height: 100vh;
+  background-color: var(--sh-bg);
+  background-image: radial-gradient(var(--sh-dot) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
+}
+
+.sh-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sh-ink-soft);
+}
+
+.sh-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.sh-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--sh-border-strong);
+  border-radius: 999px;
+}
+.sh-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sh-black);
+  outline-offset: 2px;
+}
