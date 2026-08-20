@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, ClipboardCheck, MessageSquare } from 'lucide-react';
+import { Home, FileText, ClipboardCheck, MessageSquare, LogOut } from 'lucide-react';
 import Logo from './Logo';
 import { Avatar } from './ui';
 
@@ -10,7 +11,12 @@ const NAV_ITEMS = [
   { to: 'chats', label: 'Chats', icon: MessageSquare },
 ];
 
-export default function TopNav({ base, userInitials = 'TJ' }) {
+export default function TopNav({ base, session, onLogout }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const initials = session?.name
+    ? session.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+    : '—';
+
   return (
     <header
       className="sticky top-0 z-10 border-b"
@@ -40,7 +46,30 @@ export default function TopNav({ base, userInitials = 'TJ' }) {
           ))}
         </nav>
 
-        <Avatar initials={userInitials} size={38} />
+        <div className="relative">
+          <button type="button" onClick={() => setMenuOpen((o) => !o)} aria-label="Account menu">
+            <Avatar initials={initials} size={38} />
+          </button>
+          {menuOpen && (
+            <div
+              className="absolute right-0 top-11 w-48 rounded-xl border shadow-lg py-1.5 z-20"
+              style={{ background: 'var(--sh-surface)', borderColor: 'var(--sh-border)' }}
+            >
+              <div className="px-3.5 py-2 border-b" style={{ borderColor: 'var(--sh-border)' }}>
+                <p className="text-sm font-semibold truncate">{session?.name}</p>
+                <p className="text-xs capitalize" style={{ color: 'var(--sh-ink-faint)' }}>{session?.role} &middot; {session?.schoolName}</p>
+              </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-left"
+                style={{ color: 'var(--sh-ink)' }}
+              >
+                <LogOut size={14} /> Log out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

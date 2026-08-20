@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { Field, Input, Button } from './ui';
 
 /**
  * Owner-only modal for adding a student or educator to the school.
  * Educators get extra permissions (attendance, resources) once added.
+ * onCreate is expected to persist the record via the store.
  */
 export default function UserManagementModal({ onClose, onCreate }) {
   const [role, setRole] = useState('student');
   const [form, setForm] = useState({ name: '', email: '', classGroup: '' });
+  const [error, setError] = useState('');
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -16,6 +18,10 @@ export default function UserManagementModal({ onClose, onCreate }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) {
+      setError('Name and email are required.');
+      return;
+    }
     onCreate?.({ role, ...form });
     onClose?.();
   }
@@ -58,6 +64,12 @@ export default function UserManagementModal({ onClose, onCreate }) {
               onChange={handleChange('classGroup')}
             />
           </Field>
+
+          {error && (
+            <p className="flex items-center gap-2 text-sm rounded-xl px-3.5 py-3" style={{ background: '#fdecea', color: '#c0392b' }}>
+              <AlertCircle size={15} className="shrink-0" /> {error}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>

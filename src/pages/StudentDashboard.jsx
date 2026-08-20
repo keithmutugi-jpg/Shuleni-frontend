@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, Pill, Button } from '../components/ui';
-import { studentSchedule, upcomingExams } from '../data/mock';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../store/AuthContext';
+import { listExamResults } from '../store/db';
+import { studentSchedule } from '../data/mock';
+import { examBank } from '../data/examBank';
 
 function DateBadge({ month, day }) {
   return (
@@ -16,36 +18,23 @@ function DateBadge({ month, day }) {
   );
 }
 
-function useToday() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    // refresh once a minute so the date rolls over automatically past midnight
-    const id = setInterval(() => setNow(new Date()), 60 * 1000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
-
 export default function StudentDashboard() {
-  const { currentUser } = useAuth();
-  const firstName = currentUser?.name?.split(' ')[0] || 'Student';
-  const today = useToday();
-  const weekday = today.toLocaleDateString(undefined, { weekday: 'long' });
-  const dayNum = today.getDate();
-  const monthShort = today.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
-  const year = today.getFullYear();
+  const { session } = useAuth();
+  const results = listExamResults(session.schoolId, session.userId);
+  const today = new Date();
+
   return (
     <div className="space-y-6">
       <Card className="flex items-center justify-between gap-6 flex-wrap">
         <div>
-          <p className="sh-label mb-2">{weekday}, {dayNum} {monthShort.charAt(0) + monthShort.slice(1).toLowerCase()} {year}</p>
-          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, {firstName}!</h1>
+          <p className="sh-label mb-2">{today.toDateString()}</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, {session.name.split(' ')[0]}!</h1>
           <p className="text-sm mt-1.5" style={{ color: 'var(--sh-ink-soft)' }}>
-            You have <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>3 classes</span> today and{' '}
-            <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>1 exam</span> this week.
+            You have <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>{studentSchedule.length} classes</span> today and{' '}
+            <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>1 exam</span> ready to take.
           </p>
         </div>
-        <DateBadge month={monthShort} day={dayNum} />
+        <DateBadge month={today.toLocaleString('en-GB', { month: 'short' }).toUpperCase()} day={today.getDate()} />
       </Card>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -73,22 +62,25 @@ export default function StudentDashboard() {
         </Card>
 
         <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold">Upcoming Exam</h3>
-          </div>
-          {upcomingExams.slice(0, 1).map((ex) => (
-            <div key={ex.id} className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl border flex flex-col items-center justify-center shrink-0" style={{ borderColor: 'var(--sh-border-strong)' }}>
-                <span className="text-[9px] font-bold" style={{ color: 'var(--sh-ink-faint)' }}>{ex.day}</span>
-                <span className="text-base font-extrabold leading-none">{ex.date}</span>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold">{ex.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--sh-ink-faint)' }}>{ex.when} &middot; {ex.tag}</p>
-              </div>
+          <h3 className="font-bold mb-4">{examBank.title}</h3>
+          <p className="text-sm mb-5" style={{ color: 'var(--sh-ink-faint)' }}>
+            {examBank.questions.length} questions &middot; {examBank.minutes} minutes &middot; one attempt is graded automatically when you submit.
+          </p>
+          <Link to="/student/exam">
+            <Button className="w-full">Start when ready</Button>
+          </Link>
+
+          {results.length > 0 && (
+            <div className="mt-5 pt-5 border-t" style={{ borderColor: 'var(--sh-border)' }}>
+              <p className="sh-label mb-2">Your results</p>
+              {results.map((r) => (
+                <div key={r.id} className="flex items-center justify-between text-sm py-1.5">
+                  <span style={{ color: 'var(--sh-ink-soft)' }}>{new Date(r.submittedAt).toLocaleDateString()}</span>
+                  <span className="font-semibold">{r.score} / {r.total}</span>
+                </div>
+              ))}
             </div>
-          ))}
-          <Button className="w-full mt-5">Start when ready</Button>
+          )}
         </Card>
       </div>
     </div>

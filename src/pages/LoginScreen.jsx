@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { School, User, Lock, ArrowRight } from 'lucide-react';
+import { School, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Field, Input, Button } from '../components/ui';
-import { useAuth } from '../context/AuthContext';
-
-const ROLE_HOME = {
-  owner: '/owner/home',
-  educator: '/educator/home',
-  student: '/student/home',
-};
+import { useAuth } from '../store/AuthContext';
 
 /**
- * Public entry point — school + user sign-in.
+ * Public entry point — school + user sign-in. Actually authenticates
+ * against the school/user records in the store (see src/store/db.js)
+ * and routes to the dashboard matching the signed-in user's role.
+ *
  * Owned by Keith: Authentication, routing & school-owner dashboard.
  */
 export default function LoginScreen() {
@@ -20,6 +17,7 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [form, setForm] = useState({ school: '', username: '', password: '' });
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -27,13 +25,23 @@ export default function LoginScreen() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    const user = login(form);
-    if (!user) {
-      setError('No account matches that school, username and password.');
+    setError('');
+    setSubmitting(true);
+
+    const result = login({
+      schoolNameOrId: form.school,
+      username: form.username,
+      password: form.password,
+    });
+
+    setSubmitting(false);
+
+    if (result.error) {
+      setError(result.error);
       return;
     }
-    setError('');
-    navigate(ROLE_HOME[user.role] || '/');
+
+    navigate(`/${result.session.role}/home`);
   }
 
   return (
@@ -51,6 +59,7 @@ export default function LoginScreen() {
               placeholder="e.g. Greenfield Academy or #SCH-004"
               value={form.school}
               onChange={handleChange('school')}
+              required
             />
           </Field>
 
@@ -59,6 +68,7 @@ export default function LoginScreen() {
               placeholder="Enter your username"
               value={form.username}
               onChange={handleChange('username')}
+              required
             />
           </Field>
 
@@ -68,15 +78,18 @@ export default function LoginScreen() {
               placeholder="Enter your password"
               value={form.password}
               onChange={handleChange('password')}
+              required
             />
           </Field>
 
           {error && (
-            <p className="text-sm font-medium" style={{ color: '#c0392b' }}>{error}</p>
+            <p className="flex items-center gap-2 text-sm rounded-xl px-3.5 py-3" style={{ background: '#fdecea', color: '#c0392b' }}>
+              <AlertCircle size={15} className="shrink-0" /> {error}
+            </p>
           )}
 
-          <Button type="submit" className="w-full mt-2">
-            <ArrowRight size={16} /> Log in
+          <Button type="submit" className="w-full mt-2" disabled={submitting}>
+            <ArrowRight size={16} /> {submitting ? 'Signing in…' : 'Log in'}
           </Button>
 
           <p className="text-center text-sm" style={{ color: 'var(--sh-ink-faint)' }}>
@@ -85,6 +98,13 @@ export default function LoginScreen() {
               Register your school
             </Link>
           </p>
+
+          <div className="rounded-xl border px-3.5 py-3 text-xs" style={{ borderColor: 'var(--sh-border)', color: 'var(--sh-ink-faint)' }}>
+            <p className="font-semibold mb-1" style={{ color: 'var(--sh-ink-soft)' }}>Try the demo school</p>
+            School: <strong>Greenfield Academy</strong> (or #SCH-004)<br />
+            Owner — owner / owner123 &middot; Educator — teacher.john / teacher123<br />
+            Student — amara.osei / student123
+          </div>
         </form>
       </Card>
     </div>

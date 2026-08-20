@@ -1,56 +1,56 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, LogOut } from 'lucide-react';
 import { Card, Button, Avatar, Pill } from '../components/ui';
 import UserManagementModal from '../components/UserManagementModal';
-import { useAuth } from '../context/AuthContext';
-
-function initialsOf(name) {
-  return name
-    .split(' ')
-    .map((p) => p[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
+import { useAuth } from '../store/AuthContext';
+import { listUsers, addUser, listResources } from '../store/db';
 
 /**
- * Owner's home base: a snapshot of the school plus quick access to
- * adding students and educators. Each school that registers only
- * ever sees its own data here — never another school's.
+ * Owner's home base: a live snapshot of THIS school only (never
+ * another school's data — everything is looked up by session.schoolId)
+ * plus a working "add person" flow that actually creates accounts.
  */
 export default function OwnerDashboard() {
+  const { session, logout } = useAuth();
   const [showAddUser, setShowAddUser] = useState(false);
-  const { currentUser, usersForCurrentSchool, addUser } = useAuth();
-  const people = usersForCurrentSchool();
-  const students = people.filter((u) => u.role === 'student');
-  const educators = people.filter((u) => u.role === 'educator');
+  const [users, setUsers] = useState(() => listUsers(session.schoolId));
+  const resources = listResources(session.schoolId);
 
-  const stats = [
-    { label: 'Students', value: students.length },
-    { label: 'Educators', value: educators.length },
-    { label: 'Classes', value: new Set(students.map((s) => s.classGroup)).size },
-    { label: 'Resources', value: '101 files' },
-  ];
+  const stats = useMemo(() => {
+    const students = users.filter((u) => u.role === 'student').length;
+    const educators = users.filter((u) => u.role === 'educator').length;
+    const classGroups = new Set(users.filter((u) => u.role === 'student').map((u) => u.classGroup).filter(Boolean));
+    const totalFiles = resources.reduce((sum, r) => sum + r.files.length, 0);
+    return [
+      { label: 'Students', value: students },
+      { label: 'Educators', value: educators },
+      { label: 'Classes', value: classGroups.size },
+      { label: 'Resources', value: `${totalFiles} files` },
+    ];
+  }, [users, resources]);
 
-  function handleCreate(newPerson) {
-    const created = addUser(newPerson);
-    // In a real build this would show a toast; for the demo, the new
-    // login credentials (username: "welcome123") are visible in the list below.
-    return created;
+  function handleCreate(payload) {
+    const user = addUser(session.schoolId, payload);
+    setUsers((list) => [user, ...list]);
   }
+
+  const recent = users.slice(-6).reverse();
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <p className="sh-label mb-2">
-            {currentUser ? `${currentUser.name} · ${currentUser.schoolId}` : 'No school loaded'}
-          </p>
+          <p className="sh-label mb-2">{session.schoolName} &middot; #{session.schoolId}</p>
           <h1 className="text-2xl font-extrabold tracking-tight">School overview</h1>
         </div>
-        <Button onClick={() => setShowAddUser(true)}>
-          <Plus size={15} /> Add person
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setShowAddUser(true)}>
+            <Plus size={15} /> Add person
+          </Button>
+          <Button variant="secondary" onClick={logout}>
+            <LogOut size={15} /> Log out
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -66,36 +66,33 @@ export default function OwnerDashboard() {
         <div className="flex items-center justify-between px-5 py-3.5 rounded-t-2xl" style={{ background: 'var(--sh-black)', color: '#fff' }}>
           <span className="text-sm font-semibold">Recently added</span>
         </div>
-        {people.length === 0 ? (
-          <p className="px-5 py-6 text-sm" style={{ color: 'var(--sh-ink-faint)' }}>
-            No students or educators yet — add one to get started. New logins use
-            their name (lowercase, dot-separated) as username and "welcome123" as password.
+        {recent.length === 0 ? (
+          <p className="px-5 py-8 text-sm text-center" style={{ color: 'var(--sh-ink-faint)' }}>
+            No students or educators yet — add your first person to get started.
           </p>
         ) : (
           <ul>
-            {people.map((u, i) => (
+            {recent.map((u, i) => (
               <li
                 key={u.id}
-                className={`flex items-center gap-3 px-5 py-4 ${i !== people.length - 1 ? 'border-b' : ''}`}
+                className={`flex items-center gap-3 px-5 py-4 ${i !== recent.length - 1 ? 'border-b' : ''}`}
                 style={{ borderColor: 'var(--sh-border)' }}
               >
-                <Avatar initials={initialsOf(u.name)} size={34} dark={false} />
+                <Avatar initials={u.name.split(' ').map((n) => n[0]).slice(0, 2).join('')} size={34} dark={false} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{u.name}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--sh-ink-faint)' }}>
-                    {u.classGroup} · login: {u.username}
+                    {u.classGroup || u.subjects || u.email}
                   </p>
                 </div>
-                <Pill>{u.role}</Pill>
+                <Pill className="capitalize">{u.role}</Pill>
               </li>
             ))}
           </ul>
         )}
       </Card>
 
-      {showAddUser && (
-        <UserManagementModal onClose={() => setShowAddUser(false)} onCreate={handleCreate} />
-      )}
+      {showAddUser && <UserManagementModal onClose={() => setShowAddUser(false)} onCreate={handleCreate} />}
     </div>
   );
 }

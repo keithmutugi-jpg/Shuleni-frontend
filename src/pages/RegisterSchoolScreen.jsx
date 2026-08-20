@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { School, Mail, User, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
+import { School, Mail, User, Lock, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Field, Input, Button } from '../components/ui';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../store/AuthContext';
+import { findSchool } from '../store/db';
 
 /**
- * Onboarding for a brand-new, isolated school. Each school that
- * registers here gets its own owner account and never sees another
- * school's students, staff or data.
+ * Onboarding for a brand-new, isolated school. Actually creates a
+ * school + owner record in the store — every new school gets its
+ * own id and its own user/attendance/resource/chat data, so it can
+ * never see or collide with another school's records.
  */
 export default function RegisterSchoolScreen() {
   const navigate = useNavigate();
-  const { registerSchool } = useAuth();
+  const { register } = useAuth();
   const [form, setForm] = useState({
     schoolName: '',
     ownerName: '',
@@ -20,6 +22,8 @@ export default function RegisterSchoolScreen() {
     username: '',
     password: '',
   });
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -27,7 +31,20 @@ export default function RegisterSchoolScreen() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    registerSchool(form);
+    setError('');
+
+    if (findSchool(form.schoolName)) {
+      setError('A school with that name already exists — try a more specific name.');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setSubmitting(true);
+    register(form);
+    setSubmitting(false);
     navigate('/owner/home');
   }
 
@@ -46,6 +63,7 @@ export default function RegisterSchoolScreen() {
               placeholder="e.g. Greenfield Academy"
               value={form.schoolName}
               onChange={handleChange('schoolName')}
+              required
             />
           </Field>
 
@@ -54,6 +72,7 @@ export default function RegisterSchoolScreen() {
               placeholder="Your full name"
               value={form.ownerName}
               onChange={handleChange('ownerName')}
+              required
             />
           </Field>
 
@@ -63,6 +82,7 @@ export default function RegisterSchoolScreen() {
               placeholder="you@school.ac.ke"
               value={form.email}
               onChange={handleChange('email')}
+              required
             />
           </Field>
 
@@ -71,20 +91,28 @@ export default function RegisterSchoolScreen() {
               placeholder="Choose a username"
               value={form.username}
               onChange={handleChange('username')}
+              required
             />
           </Field>
 
           <Field label="Password" icon={Lock}>
             <Input
               type="password"
-              placeholder="Create a password"
+              placeholder="At least 6 characters"
               value={form.password}
               onChange={handleChange('password')}
+              required
             />
           </Field>
 
-          <Button type="submit" className="w-full mt-2">
-            <ArrowRight size={16} /> Create school
+          {error && (
+            <p className="flex items-center gap-2 text-sm rounded-xl px-3.5 py-3" style={{ background: '#fdecea', color: '#c0392b' }}>
+              <AlertCircle size={15} className="shrink-0" /> {error}
+            </p>
+          )}
+
+          <Button type="submit" className="w-full mt-2" disabled={submitting}>
+            <ArrowRight size={16} /> {submitting ? 'Creating…' : 'Create school'}
           </Button>
 
           <p className="text-center text-sm" style={{ color: 'var(--sh-ink-faint)' }}>

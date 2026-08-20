@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, AlertCircle } from 'lucide-react';
 import { Field, Input, Button } from './ui';
 
 const SUBJECTS = ['Mathematics', 'Science', 'Literature', 'History', 'Geography', 'Physical Education'];
@@ -7,15 +7,28 @@ const SUBJECTS = ['Mathematics', 'Science', 'Literature', 'History', 'Geography'
 /**
  * Lets an educator upload a file into a subject folder and choose
  * whether it's open to everyone or restricted to specific classes.
+ * onUpload persists the record via the store (see ResourceLibrary).
  */
 export default function UploadResourceModal({ onClose, onUpload }) {
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [title, setTitle] = useState('');
   const [restricted, setRestricted] = useState(true);
+  const [fileName, setFileName] = useState('');
+  const [error, setError] = useState('');
+
+  function handleFilePick(e) {
+    const file = e.target.files?.[0];
+    if (file) setFileName(file.name);
+  }
 
   function handleSubmit(e) {
     e.preventDefault();
-    onUpload?.({ subject, title, restricted });
+    const name = fileName || title;
+    if (!name.trim()) {
+      setError('Choose a file or give it a name.');
+      return;
+    }
+    onUpload?.({ subject, fileName: name, restricted });
     onClose?.();
   }
 
@@ -30,9 +43,23 @@ export default function UploadResourceModal({ onClose, onUpload }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="File name">
-            <Input placeholder="e.g. Chapter 4 — Quadratic Equations.pdf" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </Field>
+          <div>
+            <span className="sh-label block mb-2">File</span>
+            <label
+              className="rounded-2xl border border-dashed flex flex-col items-center justify-center gap-2 py-8 cursor-pointer"
+              style={{ borderColor: 'var(--sh-border-strong)', color: 'var(--sh-ink-faint)' }}
+            >
+              <Upload size={20} />
+              <span className="text-xs">{fileName || 'Click to choose a file'}</span>
+              <input type="file" onChange={handleFilePick} className="hidden" />
+            </label>
+          </div>
+
+          {!fileName && (
+            <Field label="Or just give it a name">
+              <Input placeholder="e.g. Chapter 4 — Quadratic Equations.pdf" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </Field>
+          )}
 
           <label className="block">
             <span className="sh-label block mb-2">Subject folder</span>
@@ -53,13 +80,11 @@ export default function UploadResourceModal({ onClose, onUpload }) {
             Restrict access to specific classes
           </label>
 
-          <div
-            className="rounded-2xl border border-dashed flex flex-col items-center justify-center gap-2 py-8"
-            style={{ borderColor: 'var(--sh-border-strong)', color: 'var(--sh-ink-faint)' }}
-          >
-            <Upload size={20} />
-            <span className="text-xs">Drag a file here, or click to browse</span>
-          </div>
+          {error && (
+            <p className="flex items-center gap-2 text-sm rounded-xl px-3.5 py-3" style={{ background: '#fdecea', color: '#c0392b' }}>
+              <AlertCircle size={15} className="shrink-0" /> {error}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>

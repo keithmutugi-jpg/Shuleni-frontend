@@ -1,11 +1,20 @@
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { HelpCircle } from 'lucide-react';
 import TopNav from '../components/TopNav';
+import { useAuth } from '../store/AuthContext';
 
-export default function AppShell({ base, userInitials, footerLabel }) {
+export default function AppShell({ base, footerLabel }) {
+  const { session, logout } = useAuth();
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    logout();
+    navigate('/');
+  }
+
   return (
     <div className="sh-canvas flex flex-col">
-      <TopNav base={base} userInitials={userInitials} />
+      <TopNav base={base} session={session} onLogout={handleLogout} />
 
       <main className="flex-1 mx-auto w-full max-w-[1400px] px-6 py-8">
         <Outlet />
