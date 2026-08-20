@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { School, Mail, User, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Field, Input, Button } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Onboarding for a brand-new, isolated school. Each school that
@@ -11,6 +12,7 @@ import { Card, Field, Input, Button } from '../components/ui';
  */
 export default function RegisterSchoolScreen() {
   const navigate = useNavigate();
+  const { registerSchool } = useAuth();
   const [form, setForm] = useState({
     schoolName: '',
     ownerName: '',
@@ -25,7 +27,7 @@ export default function RegisterSchoolScreen() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    // TODO: wire up to the "create school" API, then land the owner on their dashboard.
+    registerSchool(form);
     navigate('/owner/home');
   }
 

@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { Card, Pill, Button } from '../components/ui';
 import { studentSchedule, upcomingExams } from '../data/mock';
+import { useAuth } from '../context/AuthContext';
 
 function DateBadge({ month, day }) {
   return (
@@ -15,12 +16,14 @@ function DateBadge({ month, day }) {
 }
 
 export default function StudentDashboard() {
+  const { currentUser } = useAuth();
+  const firstName = currentUser?.name?.split(' ')[0] || 'Student';
   return (
     <div className="space-y-6">
       <Card className="flex items-center justify-between gap-6 flex-wrap">
         <div>
           <p className="sh-label mb-2">Monday, 18 Aug 2026</p>
-          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, Amara!</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, {firstName}!</h1>
           <p className="text-sm mt-1.5" style={{ color: 'var(--sh-ink-soft)' }}>
             You have <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>3 classes</span> today and{' '}
             <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>1 exam</span> this week.

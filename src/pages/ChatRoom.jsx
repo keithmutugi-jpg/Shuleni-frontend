@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Paperclip, Send } from 'lucide-react';
 import { Avatar, Input, Button } from '../components/ui';
 import { chatRooms, chatParticipants, chatMessages } from '../data/mock';
+import { useAuth } from '../context/AuthContext';
 
 function RoomListItem({ room, active, onClick }) {
   return (
@@ -84,9 +85,37 @@ function ParticipantRow({ p, online }) {
 }
 
 export default function ChatRoom() {
+  const { currentUser } = useAuth();
   const [activeRoom, setActiveRoom] = useState(chatRooms[0].id);
   const [draft, setDraft] = useState('');
+  const [messages, setMessages] = useState(chatMessages);
   const room = chatRooms.find((r) => r.id === activeRoom);
+
+  function initialsOf(name) {
+    return (name || 'You')
+      .split(' ')
+      .map((p) => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  function handleSend() {
+    if (!draft.trim()) return;
+    setMessages((m) => [
+      ...m,
+      {
+        id: `local-${Date.now()}`,
+        from: currentUser?.name || 'You',
+        role: currentUser?.role,
+        initials: initialsOf(currentUser?.name),
+        text: draft.trim(),
+        time: 'Now',
+        dark: true,
+      },
+    ]);
+    setDraft('');
+  }
 
   return (
     <div
@@ -125,7 +154,7 @@ export default function ChatRoom() {
         </div>
 
         <div className="flex-1 overflow-y-auto sh-scrollbar px-6 py-5 space-y-5">
-          {chatMessages.map((m) => (
+          {messages.map((m) => (
             <MessageBubble key={m.id} msg={m} />
           ))}
         </div>
@@ -136,10 +165,16 @@ export default function ChatRoom() {
             style={{ borderColor: 'var(--sh-border-strong)' }}
           >
             <Paperclip size={16} style={{ color: 'var(--sh-ink-faint)' }} />
-            <Input placeholder="Type a message…" value={draft} onChange={(e) => setDraft(e.target.value)} />
+            <Input
+              placeholder="Type a message…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            />
             <button
               type="button"
               aria-label="Send message"
+              onClick={handleSend}
               className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: draft ? 'var(--sh-black)' : '#eceef1', color: draft ? '#fff' : 'var(--sh-ink-faint)' }}
             >

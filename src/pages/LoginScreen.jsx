@@ -3,6 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { School, User, Lock, ArrowRight } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Field, Input, Button } from '../components/ui';
+import { useAuth } from '../context/AuthContext';
+
+const ROLE_HOME = {
+  owner: '/owner/home',
+  educator: '/educator/home',
+  student: '/student/home',
+};
 
 /**
  * Public entry point — school + user sign-in.
@@ -10,7 +17,9 @@ import { Card, Field, Input, Button } from '../components/ui';
  */
 export default function LoginScreen() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({ school: '', username: '', password: '' });
+  const [error, setError] = useState('');
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -18,8 +27,13 @@ export default function LoginScreen() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    // TODO: wire up to auth API — routes to the right dashboard by role.
-    navigate('/educator/home');
+    const user = login(form);
+    if (!user) {
+      setError('No account matches that school, username and password.');
+      return;
+    }
+    setError('');
+    navigate(ROLE_HOME[user.role] || '/');
   }
 
   return (
@@ -56,6 +70,10 @@ export default function LoginScreen() {
               onChange={handleChange('password')}
             />
           </Field>
+
+          {error && (
+            <p className="text-sm font-medium" style={{ color: '#c0392b' }}>{error}</p>
+          )}
 
           <Button type="submit" className="w-full mt-2">
             <ArrowRight size={16} /> Log in

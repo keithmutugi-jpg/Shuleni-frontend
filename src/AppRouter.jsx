@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './layouts/AppShell';
+import { AuthProvider } from './context/AuthContext';
 
 import LoginScreen from './pages/LoginScreen';
 import RegisterSchoolScreen from './pages/RegisterSchoolScreen';
@@ -18,6 +19,7 @@ import ExamInterface from './pages/ExamInterface';
  */
 export default function AppRouter() {
   return (
+    <AuthProvider>
     <BrowserRouter>
       <Routes>
         {/* Public */}
@@ -57,5 +59,6 @@ export default function AppRouter() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
