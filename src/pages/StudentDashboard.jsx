@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { Card, Pill, Button } from '../components/ui';
+import { Link } from 'react-router-dom';
 import { studentSchedule, upcomingExams } from '../data/mock';
 
 function DateBadge({ month, day }) {
@@ -69,7 +70,9 @@ export default function StudentDashboard() {
               </div>
             </div>
           ))}
-          <Button className="w-full mt-5">Start when ready</Button>
+          <Link to="/student/exam" className="w-full block mt-5">
+            <Button className="w-full">Start when ready</Button>
+          </Link>
         </Card>
       </div>
     </div>

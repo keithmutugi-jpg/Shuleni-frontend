@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Clock, X } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Button } from '../components/ui';
@@ -19,29 +19,133 @@ function formatTime(totalSeconds) {
  * discourage tab-switching while a test is in progress.
  */
 export default function ExamInterface() {
+  const navigate = useNavigate();
+  const [started, setStarted] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(EXAM_MINUTES * 60);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-
-  useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, [secondsLeft]);
+  const [violations, setViolations] = useState(0);
+  const timerRef = useRef(null);
 
   const question = examQuestions[index];
   const answered = Object.keys(answers).length;
   const low = secondsLeft <= 60;
 
+  useEffect(() => {
+    if (!started) return;
+    if (secondsLeft <= 0) {
+      // auto-submit when time's up
+      handleSubmit();
+      return;
+    }
+    timerRef.current = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(timerRef.current);
+  }, [started, secondsLeft]);
+
+  useEffect(() => {
+    if (!started) return undefined;
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        setViolations((v) => {
+          const nv = v + 1;
+          if (nv >= 3) handleSubmit();
+          return nv;
+        });
+      }
+    };
+
+    const handleBlur = () => {
+      setViolations((v) => {
+        const nv = v + 1;
+        if (nv >= 3) handleSubmit();
+        return nv;
+      });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [started]);
+
+  function handleStart() {
+    setAnswers({});
+    setIndex(0);
+    setSecondsLeft(EXAM_MINUTES * 60);
+    setViolations(0);
+    setStarted(true);
+  }
+
+  function handleSubmit() {
+    // save a quick local result snapshot
+    const result = {
+      takenAt: new Date().toISOString(),
+      durationSeconds: EXAM_MINUTES * 60 - secondsLeft,
+      answers,
+      violations,
+    };
+    try {
+      const prev = JSON.parse(localStorage.getItem('examResults') || '[]');
+      prev.push(result);
+      localStorage.setItem('examResults', JSON.stringify(prev));
+    } catch (e) {
+      localStorage.setItem('examResults', JSON.stringify([result]));
+    }
+    clearInterval(timerRef.current);
+    setStarted(false);
+    navigate('/student/home');
+  }
+
+  if (!started) {
+    return (
+      <div className="sh-canvas flex flex-col items-center px-4 py-8">
+        <div className="w-full max-w-2xl flex items-center justify-between mb-8">
+          <Logo size="sm" withName={false} />
+          <div
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold"
+            style={{ background: low ? '#c0392b' : 'var(--sh-black)', color: '#fff' }}
+          >
+            <Clock size={15} /> {formatTime(secondsLeft)}
+          </div>
+          <Link to=".." className="inline-flex items-center gap-1 text-sm font-medium" style={{ color: 'var(--sh-ink-faint)' }}>
+            <X size={15} /> Exit
+          </Link>
+        </div>
+
+        <Card className="w-full max-w-2xl text-center">
+          <h2 className="text-lg font-bold mb-2">Ready to start your exam?</h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--sh-ink-faint)' }}>
+            This exam is timed for {EXAM_MINUTES} minutes. Once you start, the timer will begin and switching tabs
+            or leaving the window may be recorded and could lead to auto-submission.
+          </p>
+          <div className="flex justify-center">
+            <Button onClick={handleStart}>Start exam</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="sh-canvas flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-2xl flex items-center justify-between mb-8">
         <Logo size="sm" withName={false} />
-        <div
-          className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold"
-          style={{ background: low ? '#c0392b' : 'var(--sh-black)', color: '#fff' }}
-        >
-          <Clock size={15} /> {formatTime(secondsLeft)}
+        <div className="space-y-1">
+          <div
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold"
+            style={{ background: low ? '#c0392b' : 'var(--sh-black)', color: '#fff' }}
+          >
+            <Clock size={15} /> {formatTime(secondsLeft)}
+          </div>
+          {violations > 0 && (
+            <div className="text-[12px] font-medium" style={{ color: '#c0392b' }}>
+              Warning: {violations} potential policy {violations === 1 ? 'violation' : 'violations'} detected
+            </div>
+          )}
         </div>
         <Link to=".." className="inline-flex items-center gap-1 text-sm font-medium" style={{ color: 'var(--sh-ink-faint)' }}>
           <X size={15} /> Exit
@@ -97,7 +201,7 @@ export default function ExamInterface() {
           {index < examQuestions.length - 1 ? (
             <Button onClick={() => setIndex((i) => Math.min(examQuestions.length - 1, i + 1))}>Next</Button>
           ) : (
-            <Button>Submit exam</Button>
+            <Button onClick={handleSubmit}>Submit exam</Button>
           )}
         </div>
       </Card>
