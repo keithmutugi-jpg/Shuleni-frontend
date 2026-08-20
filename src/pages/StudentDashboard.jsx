@@ -1,6 +1,6 @@
+import { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Card, Pill, Button } from '../components/ui';
-import { Link } from 'react-router-dom';
 import { studentSchedule, upcomingExams } from '../data/mock';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,21 +16,36 @@ function DateBadge({ month, day }) {
   );
 }
 
+function useToday() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    // refresh once a minute so the date rolls over automatically past midnight
+    const id = setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 export default function StudentDashboard() {
   const { currentUser } = useAuth();
   const firstName = currentUser?.name?.split(' ')[0] || 'Student';
+  const today = useToday();
+  const weekday = today.toLocaleDateString(undefined, { weekday: 'long' });
+  const dayNum = today.getDate();
+  const monthShort = today.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+  const year = today.getFullYear();
   return (
     <div className="space-y-6">
       <Card className="flex items-center justify-between gap-6 flex-wrap">
         <div>
-          <p className="sh-label mb-2">Monday, 18 Aug 2026</p>
+          <p className="sh-label mb-2">{weekday}, {dayNum} {monthShort.charAt(0) + monthShort.slice(1).toLowerCase()} {year}</p>
           <h1 className="text-2xl font-extrabold tracking-tight">Welcome, {firstName}!</h1>
           <p className="text-sm mt-1.5" style={{ color: 'var(--sh-ink-soft)' }}>
             You have <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>3 classes</span> today and{' '}
             <span className="font-semibold" style={{ color: 'var(--sh-ink)' }}>1 exam</span> this week.
           </p>
         </div>
-        <DateBadge month="AUG" day="18" />
+        <DateBadge month={monthShort} day={dayNum} />
       </Card>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -73,9 +88,7 @@ export default function StudentDashboard() {
               </div>
             </div>
           ))}
-          <Link to="/student/exam" className="w-full block mt-5">
-            <Button className="w-full">Start when ready</Button>
-          </Link>
+          <Button className="w-full mt-5">Start when ready</Button>
         </Card>
       </div>
     </div>
