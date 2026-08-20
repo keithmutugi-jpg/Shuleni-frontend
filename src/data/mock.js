@@ -10,13 +10,81 @@ export const upcomingExams = [
   { id: 3, day: 'Fr', date: 29, title: 'Mathematics — Grade 7C', when: 'Fri, 29 Aug', tag: 'End-term' },
 ];
 
+export const ALL_CLASSES = ['Grade 7C', 'Grade 8A', 'Grade 9B'];
+
 export const resourceFolders = [
-  { id: 1, subject: 'Mathematics', files: 24, size: '118 MB', edited: '15 Aug 2026', access: 'restricted' },
-  { id: 2, subject: 'Science', files: 17, size: '84 MB', edited: '12 Aug 2026', access: 'open' },
-  { id: 3, subject: 'Literature', files: 31, size: '52 MB', edited: '10 Aug 2026', access: 'restricted' },
-  { id: 4, subject: 'History', files: 9, size: '23 MB', edited: '08 Aug 2026', access: 'open' },
-  { id: 5, subject: 'Geography', files: 14, size: '67 MB', edited: '05 Aug 2026', access: 'restricted' },
-  { id: 6, subject: 'Physical Education', files: 6, size: '11 MB', edited: '01 Aug 2026', access: 'open' },
+  {
+    id: 1,
+    subject: 'Mathematics',
+    size: '118 MB',
+    edited: '15 Aug 2026',
+    access: 'restricted',
+    classes: ['Grade 8A', 'Grade 9B'],
+    items: [
+      { id: 101, name: 'Chapter 4 — Quadratic Equations.pdf', size: '4.2 MB', uploaded: '15 Aug 2026' },
+      { id: 102, name: 'Grade 8A Mid-term Notes.pdf', size: '2.1 MB', uploaded: '12 Aug 2026' },
+      { id: 103, name: 'Algebra Workbook.pdf', size: '8.7 MB', uploaded: '10 Aug 2026' },
+    ],
+  },
+  {
+    id: 2,
+    subject: 'Science',
+    size: '84 MB',
+    edited: '12 Aug 2026',
+    access: 'open',
+    classes: ['Grade 7C', 'Grade 8A', 'Grade 9B'],
+    items: [
+      { id: 201, name: 'Lab Safety Guidelines.pdf', size: '1.1 MB', uploaded: '12 Aug 2026' },
+      { id: 202, name: 'Physics — Forces & Motion.pdf', size: '5.3 MB', uploaded: '09 Aug 2026' },
+    ],
+  },
+  {
+    id: 3,
+    subject: 'Literature',
+    size: '52 MB',
+    edited: '10 Aug 2026',
+    access: 'restricted',
+    classes: ['Grade 8A'],
+    items: [
+      { id: 301, name: 'Things Fall Apart — Study Guide.pdf', size: '3.4 MB', uploaded: '10 Aug 2026' },
+      { id: 302, name: 'Essay Writing Tips.docx', size: '0.8 MB', uploaded: '07 Aug 2026' },
+      { id: 303, name: 'Poetry Anthology.pdf', size: '6.2 MB', uploaded: '05 Aug 2026' },
+    ],
+  },
+  {
+    id: 4,
+    subject: 'History',
+    size: '23 MB',
+    edited: '08 Aug 2026',
+    access: 'open',
+    classes: ['Grade 7C', 'Grade 8A', 'Grade 9B'],
+    items: [
+      { id: 401, name: 'African Independence Movements.pdf', size: '4.8 MB', uploaded: '08 Aug 2026' },
+    ],
+  },
+  {
+    id: 5,
+    subject: 'Geography',
+    size: '67 MB',
+    edited: '05 Aug 2026',
+    access: 'restricted',
+    classes: ['Grade 9B'],
+    items: [
+      { id: 501, name: 'Climate Zones Map.pdf', size: '2.9 MB', uploaded: '05 Aug 2026' },
+      { id: 502, name: 'Population & Urbanisation.pdf', size: '3.7 MB', uploaded: '03 Aug 2026' },
+    ],
+  },
+  {
+    id: 6,
+    subject: 'Physical Education',
+    size: '11 MB',
+    edited: '01 Aug 2026',
+    access: 'open',
+    classes: ['Grade 7C', 'Grade 8A', 'Grade 9B'],
+    items: [
+      { id: 601, name: 'Term 3 Fitness Schedule.pdf', size: '1.0 MB', uploaded: '01 Aug 2026' },
+    ],
+  },
 ];
 
 export const rosterStudents = [
