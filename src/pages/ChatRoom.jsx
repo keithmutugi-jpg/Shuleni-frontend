@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Paperclip, Send } from 'lucide-react';
 import { Avatar, Input, Button } from '../components/ui';
 import { chatRooms, chatParticipants, chatMessages } from '../data/mock';
@@ -84,36 +84,121 @@ function ParticipantRow({ p, online }) {
   );
 }
 
+function initialsOf(name) {
+  return (name || 'You')
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export default function ChatRoom() {
   const { currentUser } = useAuth();
   const [activeRoom, setActiveRoom] = useState(chatRooms[0].id);
   const [draft, setDraft] = useState('');
-  const [messages, setMessages] = useState(chatMessages);
+  const [messagesByRoom, setMessagesByRoom] = useState(() => {
+    const map = {};
+    chatRooms.forEach((r) => {
+      // start each room with the shared mock messages
+      map[r.id] = chatMessages.slice();
+    });
+    return map;
+  });
   const room = chatRooms.find((r) => r.id === activeRoom);
+  const conversationRef = useRef(null);
 
-  function initialsOf(name) {
-    return (name || 'You')
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-  }
+  useEffect(() => {
+    // load draft for room from localStorage
+    const key = `chatDraft:${activeRoom}`;
+    const saved = localStorage.getItem(key);
+    setDraft(saved || '');
+  }, [activeRoom]);
 
-  function handleSend() {
-    if (!draft.trim()) return;
-    setMessages((m) => [
-      ...m,
-      {
-        id: `local-${Date.now()}`,
-        from: currentUser?.name || 'You',
-        role: currentUser?.role,
-        initials: initialsOf(currentUser?.name),
-        text: draft.trim(),
-        time: 'Now',
-        dark: true,
-      },
-    ]);
+  useEffect(() => {
+    // Only attempt a real WebSocket if an explicit flag is set (avoids console errors
+    // when there is no backend server). Tests can enable by setting
+    // `window.__ENABLE_CHAT_WS = true` before rendering.
+    if (typeof window === 'undefined') return undefined;
+
+    if (window.__ENABLE_CHAT_WS && window.WebSocket) {
+      let ws;
+      try {
+        ws = new window.WebSocket(window.__CHAT_WS_URL || 'ws://localhost');
+      } catch (e) {
+        console.warn('Chat WS init failed', e);
+        return undefined;
+      }
+      ws.addEventListener('error', (err) => console.warn('Chat WS error', err));
+      const onmessage = (ev) => {
+        try {
+          const payload = JSON.parse(ev.data);
+          // payload: { roomId, message }
+          if (!payload || !payload.roomId || !payload.message) return;
+          setMessagesByRoom((prev) => {
+            const copy = { ...prev };
+            copy[payload.roomId] = (copy[payload.roomId] || []).concat(payload.message);
+            return copy;
+          });
+        } catch (e) {
+          // ignore malformed
+        }
+      };
+      ws.addEventListener('message', onmessage);
+
+      return () => {
+        try {
+          ws.removeEventListener('message', onmessage);
+          ws.close();
+        } catch (e) {}
+      };
+    }
+
+    // No real WS available: start a lightweight simulator so the UI isn't completely static.
+    const simInterval = setInterval(() => {
+      const now = new Date();
+      const time = now.toTimeString().slice(0, 5);
+      const msg = { id: Date.now(), from: 'Bot', initials: 'BT', dark: false, time, text: 'This is a local simulated message.' };
+      setMessagesByRoom((prev) => {
+        const copy = { ...prev };
+        // append to current active room for visibility during development
+        copy[activeRoom] = (copy[activeRoom] || []).concat(msg);
+        return copy;
+      });
+    }, 20000);
+
+    return () => clearInterval(simInterval);
+  }, [activeRoom]);
+
+  useEffect(() => {
+    // scroll to bottom when messages change
+    if (conversationRef.current) {
+      conversationRef.current.scrollTop = conversationRef.current.scrollHeight;
+    }
+  }, [activeRoom, messagesByRoom]);
+
+  function handleSendMessage() {
+    const text = draft.trim();
+    if (!text) return;
+    const now = new Date();
+    const time = now.toTimeString().slice(0, 5);
+    const msg = {
+      id: Date.now(),
+      from: currentUser?.name || 'You',
+      role: currentUser?.role,
+      initials: initialsOf(currentUser?.name),
+      dark: true,
+      time,
+      text,
+    };
+    setMessagesByRoom((prev) => {
+      const copy = { ...prev };
+      copy[activeRoom] = (copy[activeRoom] || []).concat(msg);
+      return copy;
+    });
+    try {
+      localStorage.removeItem(`chatDraft:${activeRoom}`);
+    } catch (e) {}
     setDraft('');
   }
 
@@ -153,8 +238,8 @@ export default function ChatRoom() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto sh-scrollbar px-6 py-5 space-y-5">
-          {messages.map((m) => (
+        <div ref={conversationRef} className="flex-1 overflow-y-auto sh-scrollbar px-6 py-5 space-y-5">
+          {(messagesByRoom[activeRoom] || []).map((m) => (
             <MessageBubble key={m.id} msg={m} />
           ))}
         </div>
@@ -168,13 +253,25 @@ export default function ChatRoom() {
             <Input
               placeholder="Type a message…"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                try {
+                  localStorage.setItem(`chatDraft:${activeRoom}`, e.target.value);
+                } catch (e) {
+                  // ignore storage errors
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && draft.trim()) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
             />
             <button
               type="button"
               aria-label="Send message"
-              onClick={handleSend}
+              onClick={() => { if (draft.trim()) handleSendMessage(); }}
               className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: draft ? 'var(--sh-black)' : '#eceef1', color: draft ? '#fff' : 'var(--sh-ink-faint)' }}
             >

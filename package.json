@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "jest --passWithNoTests",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
