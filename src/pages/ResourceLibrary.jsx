@@ -6,7 +6,7 @@ import UploadResourceModal from '../components/UploadResourceModal';
 import { useAuth } from '../store/AuthContext';
 import { listResources, addResourceFile } from '../store/db';
 
-const TABS = ['All Subjects', 'Shared with me', 'Recently edited', 'Archived'];
+const TABS = ['All Subjects', 'Restricted', 'Open', 'Recently edited'];
 
 function summarize(folder) {
   const totalKb = folder.files.reduce((sum, f) => sum + f.sizeKb, 0);
@@ -57,7 +57,11 @@ export default function ResourceLibrary() {
             style={{ borderColor: 'var(--sh-border-strong)', background: 'var(--sh-surface)' }}
           >
             <Search size={15} style={{ color: 'var(--sh-ink-faint)' }} />
-            <Input placeholder="Search resources…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Input
+              placeholder="Search resources…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </div>
           <button
             type="button"
@@ -71,6 +75,7 @@ export default function ResourceLibrary() {
       </div>
 
       <Card padded={false} className="overflow-hidden">
+        {/* Tabs */}
         <div className="flex items-center gap-1 px-4 pt-4">
           {TABS.map((t) => (
             <button
@@ -94,7 +99,6 @@ export default function ResourceLibrary() {
           <span>Size</span>
           <span>Last edited</span>
           <span>Access</span>
-          <span />
         </div>
 
         {visible.length === 0 ? (
