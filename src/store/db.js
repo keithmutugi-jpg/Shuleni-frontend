@@ -9,6 +9,8 @@
  * to localStorage directly, so that swap won't touch the UI code.
  */
 
+import { examBank } from '../data/examBank';
+
 const KEYS = {
   schools: 'shuleni.schools',
   users: 'shuleni.users',
@@ -16,6 +18,8 @@ const KEYS = {
   resources: 'shuleni.resources',
   chats: 'shuleni.chats',
   exams: 'shuleni.exams',
+  classes: 'shuleni.classes',
+  timetables: 'shuleni.timetables',
   examResults: 'shuleni.examResults',
   session: 'shuleni.session',
 };
@@ -92,10 +96,53 @@ function seedIfEmpty() {
 
   write(KEYS.attendance, { [schoolId]: [] });
   write(KEYS.examResults, { [schoolId]: [] });
-  write(KEYS.exams, { [schoolId]: [] });
+  write(KEYS.exams, { [schoolId]: [
+    { ...examBank, id: 'exam-mathematics', classId: 'class-3b', availableFrom: null, availableUntil: null, createdAt: new Date().toISOString() },
+    { ...examBank, id: 'exam-science', title: 'Science — Form 3B Quiz', classId: 'class-physics', availableFrom: null, availableUntil: null, createdAt: new Date().toISOString() },
+  ] });
+  write(KEYS.classes, { [schoolId]: [
+    { id: 'class-3b', name: 'Form 3B', subject: 'Mathematics', room: 'Room 12', educatorId: 'teacher.john' },
+    { id: 'class-physics', name: 'Form 3B', subject: 'Physics', room: 'Room 07', educatorId: 'teacher.john' },
+  ] });
+  write(KEYS.timetables, { [schoolId]: Object.fromEntries(['STU-041', 'STU-042', 'STU-043', 'STU-044', 'STU-045'].map((studentId) => [studentId, [
+      { id: 'slot-math', title: 'Mathematics — Form 3B', day: 'Monday', startsAt: '08:00', endsAt: '09:30', room: 'Room 12' },
+      { id: 'slot-physics', title: 'Physics — Form 3B', day: 'Wednesday', startsAt: '10:00', endsAt: '11:30', room: 'Room 07' },
+    ]])) });
 }
 
 seedIfEmpty();
+
+function migrateDemoData() {
+  const schoolId = 'SCH-004';
+  if (!read(KEYS.schools, {})[schoolId]) return;
+  const classes = read(KEYS.classes, {});
+  if (!classes[schoolId]) {
+    classes[schoolId] = [
+      { id: 'class-3b', name: 'Form 3B', subject: 'Mathematics', room: 'Room 12', educatorId: 'teacher.john' },
+      { id: 'class-physics', name: 'Form 3B', subject: 'Physics', room: 'Room 07', educatorId: 'teacher.john' },
+    ];
+    write(KEYS.classes, classes);
+  }
+  const exams = read(KEYS.exams, {});
+  if (!exams[schoolId]?.length) {
+    exams[schoolId] = [
+      { ...examBank, id: 'exam-mathematics', classId: 'class-3b', availableFrom: null, availableUntil: null, createdAt: new Date().toISOString() },
+      { ...examBank, id: 'exam-science', title: 'Science — Form 3B Quiz', classId: 'class-physics', availableFrom: null, availableUntil: null, createdAt: new Date().toISOString() },
+    ];
+    write(KEYS.exams, exams);
+  }
+  const timetables = read(KEYS.timetables, {});
+  if (!timetables[schoolId]) {
+    const slots = [
+      { id: 'slot-math', title: 'Mathematics — Form 3B', day: 'Monday', startsAt: '08:00', endsAt: '09:30', room: 'Room 12' },
+      { id: 'slot-physics', title: 'Physics — Form 3B', day: 'Wednesday', startsAt: '10:00', endsAt: '11:30', room: 'Room 07' },
+    ];
+    timetables[schoolId] = Object.fromEntries(['STU-041', 'STU-042', 'STU-043', 'STU-044', 'STU-045'].map((id) => [id, slots]));
+    write(KEYS.timetables, timetables);
+  }
+}
+
+migrateDemoData();
 
 // ---------------------------------------------------------------------
 // Schools
@@ -138,6 +185,14 @@ export function createSchool({ schoolName, ownerName, email, username, password 
   const exams = read(KEYS.exams, {});
   exams[id] = [];
   write(KEYS.exams, exams);
+
+  const classes = read(KEYS.classes, {});
+  classes[id] = [];
+  write(KEYS.classes, classes);
+
+  const timetables = read(KEYS.timetables, {});
+  timetables[id] = {};
+  write(KEYS.timetables, timetables);
 
   return { school: schools[id], owner };
 }
@@ -200,7 +255,7 @@ export function listResources(schoolId) {
   return read(KEYS.resources, {})[schoolId] || [];
 }
 
-export function addResourceFile(schoolId, { subject, fileName, restricted }) {
+export function addResourceFile(schoolId, { subject, fileName, restricted, dataUrl, mimeType }) {
   const resources = read(KEYS.resources, {});
   const list = resources[schoolId] || [];
   let folder = list.find((f) => f.subject === subject);
@@ -210,7 +265,7 @@ export function addResourceFile(schoolId, { subject, fileName, restricted }) {
   } else {
     folder.access = restricted ? 'restricted' : 'open';
   }
-  folder.files.push({ id: uid('file'), name: fileName, sizeKb: Math.round(50 + Math.random() * 900), uploadedAt: new Date().toISOString() });
+  folder.files.push({ id: uid('file'), name: fileName, sizeKb: Math.round(50 + Math.random() * 900), uploadedAt: new Date().toISOString(), dataUrl: dataUrl || null, mimeType: mimeType || '' });
   resources[schoolId] = list;
   write(KEYS.resources, resources);
   return folder;
@@ -262,7 +317,7 @@ export function getExam(schoolId, examId) {
   return listExams(schoolId).find((e) => e.id === examId) || null;
 }
 
-export function createExam(schoolId, { title, minutes, questions }) {
+export function createExam(schoolId, { title, minutes, questions, classId, availableFrom, availableUntil }) {
   const exams = read(KEYS.exams, {});
   const list = exams[schoolId] || [];
   const entry = {
@@ -270,12 +325,53 @@ export function createExam(schoolId, { title, minutes, questions }) {
     title,
     minutes,
     questions,
+    classId: classId || null,
+    availableFrom: availableFrom || null,
+    availableUntil: availableUntil || null,
     createdAt: new Date().toISOString(),
   };
   list.unshift(entry);
   exams[schoolId] = list;
   write(KEYS.exams, exams);
   return entry;
+}
+
+// Classes and personal timetables are persisted per school/user.
+export function listClasses(schoolId) {
+  return read(KEYS.classes, {})[schoolId] || [];
+}
+
+export function createClass(schoolId, entry) {
+  const classes = read(KEYS.classes, {});
+  const list = classes[schoolId] || [];
+  const created = { id: uid('class'), createdAt: new Date().toISOString(), ...entry };
+  list.unshift(created);
+  classes[schoolId] = list;
+  write(KEYS.classes, classes);
+  return created;
+}
+
+export function listTimetable(schoolId, userId) {
+  return read(KEYS.timetables, {})[schoolId]?.[userId] || [];
+}
+
+export function addTimetableEntry(schoolId, userId, entry) {
+  const timetables = read(KEYS.timetables, {});
+  const school = timetables[schoolId] || {};
+  const list = school[userId] || [];
+  const created = { id: uid('slot'), ...entry };
+  school[userId] = [created, ...list];
+  timetables[schoolId] = school;
+  write(KEYS.timetables, timetables);
+  return created;
+}
+
+export function removeTimetableEntry(schoolId, userId, entryId) {
+  const timetables = read(KEYS.timetables, {});
+  const school = timetables[schoolId] || {};
+  school[userId] = (school[userId] || []).filter((entry) => entry.id !== entryId);
+  timetables[schoolId] = school;
+  write(KEYS.timetables, timetables);
 }
 
 // Exam results — scoped to a school

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { Card, Field, Input, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { createExam } from '../store/db';
+import { createExam, listClasses } from '../store/db';
 
 function blankQuestion() {
   return { prompt: '', options: ['', '', '', ''], correctIndex: 0 };
@@ -18,6 +18,9 @@ export default function CreateExamScreen() {
   const { session } = useAuth();
   const [title, setTitle] = useState('');
   const [minutes, setMinutes] = useState(15);
+  const [classId, setClassId] = useState('');
+  const [availableFrom, setAvailableFrom] = useState('');
+  const [availableUntil, setAvailableUntil] = useState('');
   const [questions, setQuestions] = useState([blankQuestion()]);
   const [error, setError] = useState('');
 
@@ -54,6 +57,9 @@ export default function CreateExamScreen() {
       title: title.trim(),
       minutes: Number(minutes),
       questions: questions.map((q, i) => ({ id: i + 1, ...q })),
+      classId,
+      availableFrom,
+      availableUntil,
     });
     navigate('/educator/home');
   }
@@ -84,6 +90,20 @@ export default function CreateExamScreen() {
               onChange={(e) => setMinutes(e.target.value)}
             />
           </Field>
+          <Field label="Class">
+            <select value={classId} onChange={(e) => setClassId(e.target.value)} className="w-full bg-transparent outline-none text-sm">
+              <option value="">All classes</option>
+              {listClasses(session.schoolId).map((item) => <option key={item.id} value={item.id}>{item.name} — {item.subject}</option>)}
+            </select>
+          </Field>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Available from">
+              <Input type="datetime-local" value={availableFrom} onChange={(e) => setAvailableFrom(e.target.value)} />
+            </Field>
+            <Field label="Available until">
+              <Input type="datetime-local" value={availableUntil} onChange={(e) => setAvailableUntil(e.target.value)} />
+            </Field>
+          </div>
         </Card>
 
         {questions.map((q, qi) => (
