@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { School, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
@@ -14,10 +14,14 @@ import { useAuth } from '../store/AuthContext';
  */
 export default function LoginScreen() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, session } = useAuth();
   const [form, setForm] = useState({ school: '', username: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (session) navigate(`/${session.role}/home`, { replace: true });
+  }, [navigate, session]);
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
