@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, X, CheckCircle2 } from 'lucide-react';
+import { Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
@@ -22,8 +22,10 @@ function formatTime(totalSeconds) {
 export default function ExamInterface() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const examId = window.location.pathname.split('/').pop();
   const schoolExams = listExams(session.schoolId);
-  const examBank = schoolExams.length > 0 ? schoolExams[0] : fallbackExamBank;
+  const examBank = schoolExams.find((exam) => exam.id === examId) || (examId === 'exam' ? schoolExams[0] : null) || fallbackExamBank;
+  const [consented, setConsented] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(examBank.minutes * 60);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -32,10 +34,10 @@ export default function ExamInterface() {
   const MAX_VIOLATIONS = 3;
 
   useEffect(() => {
-    if (result || secondsLeft <= 0) return;
+    if (!consented || result || secondsLeft <= 0) return;
     const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(t);
-  }, [secondsLeft, result]);
+  }, [secondsLeft, result, consented]);
 
   useEffect(() => {
     if (secondsLeft === 0 && !result) handleSubmit();
@@ -103,6 +105,17 @@ export default function ExamInterface() {
         </Card>
       </div>
     );
+  }
+
+  if (!consented) {
+    return <div className="sh-canvas flex items-center justify-center px-4 py-8"><Card className="w-full max-w-xl">
+      <AlertTriangle size={34} className="mb-4" style={{ color: '#c0392b' }} />
+      <h1 className="text-xl font-extrabold mb-2">Before you begin</h1>
+      <p className="text-sm leading-6" style={{ color: 'var(--sh-ink-soft)' }}>This assessment is monitored. Plagiarism, collusion, using unauthorised help, or leaving the exam window may be flagged and can lead to disciplinary consequences.</p>
+      <label className="flex gap-3 items-start mt-6 text-sm"><input type="checkbox" checked={consented} onChange={(e) => setConsented(e.target.checked)} className="mt-1" /> I promise not to cheat or plagiarise, and I understand and accept the consequences if I do.</label>
+      <Button className="w-full mt-6" disabled={!consented} onClick={() => setConsented(true)}>I understand, start exam</Button>
+      <Button variant="secondary" className="w-full mt-2" onClick={() => navigate('/student/home')}>Cancel</Button>
+    </Card></div>;
   }
 
   return (

@@ -36,8 +36,8 @@ export default function ResourceLibrary() {
   );
   const totalFiles = folders.reduce((sum, f) => sum + f.files.length, 0);
 
-  function handleUpload({ subject, fileName, restricted }) {
-    addResourceFile(session.schoolId, { subject, fileName, restricted });
+  function handleUpload({ subject, fileName, restricted, dataUrl, mimeType }) {
+    addResourceFile(session.schoolId, { subject, fileName, restricted, dataUrl, mimeType });
     setFolders(listResources(session.schoolId));
   }
 

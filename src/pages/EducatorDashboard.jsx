@@ -1,4 +1,4 @@
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight, Plus, CalendarPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Pill, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
@@ -56,6 +56,10 @@ export default function EducatorDashboard() {
           <Plus size={15} /> Create exam
         </Button>
       </Link>
+      <div className="flex gap-3 flex-wrap">
+        <Link to="/educator/create-class"><Button variant="secondary"><CalendarPlus size={15} /> Add class</Button></Link>
+        <Link to="/educator/timetable"><Button variant="secondary">Manage timetable</Button></Link>
+      </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card padded={false} className="overflow-hidden">
