@@ -62,7 +62,10 @@ export default function TopNav({ base, session, onLogout }) {
               </div>
               <button
                 type="button"
-                onClick={onLogout}
+                onClick={() => {
+                  setMenuOpen(false);
+                  onLogout?.();
+                }}
                 className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-left"
                 style={{ color: 'var(--sh-ink)' }}
               >
