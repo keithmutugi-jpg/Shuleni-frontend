@@ -52,13 +52,13 @@ export default function StudentDashboard() {
             {schedule.map((c, i) => (
               <li
                 key={c.id}
-                className={`flex items-center gap-3 px-5 py-4 ${i !== studentSchedule.length - 1 ? 'border-b' : ''}`}
+                className={`flex items-center gap-3 px-5 py-4 ${i !== schedule.length - 1 ? 'border-b' : ''}`}
                 style={{ borderColor: 'var(--sh-border)' }}
               >
                 <span className="w-1 self-stretch rounded-full" style={{ background: 'var(--sh-border-strong)' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{c.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--sh-ink-faint)' }}>{c.time}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--sh-ink-faint)' }}>{c.day} · {c.startsAt} – {c.endsAt}</p>
                 </div>
                 <Pill>{c.room}</Pill>
               </li>

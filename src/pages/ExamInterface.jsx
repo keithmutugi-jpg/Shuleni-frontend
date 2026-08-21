@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Button } from '../components/ui';
@@ -21,8 +21,8 @@ function formatTime(totalSeconds) {
  */
 export default function ExamInterface() {
   const navigate = useNavigate();
+  const { examId } = useParams();
   const { session } = useAuth();
-  const examId = window.location.pathname.split('/').pop();
   const schoolExams = listExams(session.schoolId);
   const examBank = schoolExams.find((exam) => exam.id === examId) || (examId === 'exam' ? schoolExams[0] : null) || fallbackExamBank;
   const [consented, setConsented] = useState(false);

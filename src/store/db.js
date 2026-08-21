@@ -348,6 +348,25 @@ export function createClass(schoolId, entry) {
   list.unshift(created);
   classes[schoolId] = list;
   write(KEYS.classes, classes);
+
+  const users = listUsers(schoolId);
+  const timetables = read(KEYS.timetables, {});
+  const schoolTimetables = timetables[schoolId] || {};
+  const startsAt = entry.startsAt ? new Date(entry.startsAt) : null;
+  const publishedEntry = {
+    classId: created.id,
+    title: `${created.subject} — ${created.name}`,
+    day: startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt.toLocaleDateString('en-GB', { weekday: 'long' }) : 'Monday',
+    startsAt: startsAt && !Number.isNaN(startsAt.getTime()) ? startsAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+    endsAt: entry.endsAt ? new Date(entry.endsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '',
+    room: created.room || '',
+  };
+  users.filter((user) => user.role === 'student' && user.classGroup === created.name).forEach((student) => {
+    const existing = schoolTimetables[student.id] || [];
+    schoolTimetables[student.id] = [{ id: uid('slot'), ...publishedEntry }, ...existing];
+  });
+  timetables[schoolId] = schoolTimetables;
+  write(KEYS.timetables, timetables);
   return created;
 }
 

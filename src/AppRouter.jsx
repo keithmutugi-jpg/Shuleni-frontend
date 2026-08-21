@@ -63,7 +63,6 @@ export default function AppRouter() {
             <Route path="resources" element={<ResourceLibrary />} />
             <Route path="attendance" element={<AttendanceView />} />
             <Route path="chats" element={<ChatRoom />} />
-            <Route path="timetable" element={<Timetable />} />
           </Route>
 
           {/* Student */}
@@ -80,11 +79,12 @@ export default function AppRouter() {
             <Route path="resources" element={<ResourceLibrary />} />
             <Route path="attendance" element={<AttendanceView />} />
             <Route path="chats" element={<ChatRoom />} />
+            <Route path="timetable" element={<Timetable />} />
           </Route>
 
           {/* Distraction-free exam, outside the shell but still guarded */}
           <Route
-            path="/student/exam"
+            path="/student/exam/:examId?"
             element={
               <RequireRole role="student">
                 <ExamInterface />
