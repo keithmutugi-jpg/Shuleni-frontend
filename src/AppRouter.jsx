@@ -11,6 +11,7 @@ import ResourceLibrary from './pages/ResourceLibrary';
 import AttendanceView from './pages/AttendanceView';
 import ChatRoom from './pages/ChatRoom';
 import ExamInterface from './pages/ExamInterface';
+import CreateExamScreen from './pages/CreateExamScreen';
 
 /**
  * Keith's area: authentication, routing and role-based access.
@@ -54,6 +55,7 @@ export default function AppRouter() {
           >
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<EducatorDashboard />} />
+            <Route path="create-exam" element={<CreateExamScreen />} />
             <Route path="resources" element={<ResourceLibrary />} />
             <Route path="attendance" element={<AttendanceView />} />
             <Route path="chats" element={<ChatRoom />} />

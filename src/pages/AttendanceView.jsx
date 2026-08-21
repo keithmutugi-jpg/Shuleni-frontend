@@ -13,6 +13,7 @@ function initialsOf(name) {
 
 export default function AttendanceView() {
   const { session } = useAuth();
+  const isEducator = session.role === 'educator' || session.role === 'owner';
   const allStudents = useMemo(() => listUsers(session.schoolId).filter((u) => u.role === 'student'), [session.schoolId]);
   const classGroups = useMemo(
     () => [...new Set(allStudents.map((s) => s.classGroup).filter(Boolean))],
@@ -141,10 +142,10 @@ export default function AttendanceView() {
 
         <StudentRosterTable
           students={students}
-          onStatusChange={setStatus}
-          onNoteChange={setNote}
+          onStatusChange={isEducator ? setStatus : undefined}
+          onNoteChange={isEducator ? setNote : undefined}
           selected={selected}
-          onToggleSelect={toggleSelect}
+          onToggleSelect={isEducator ? toggleSelect : undefined}
           isLast
         />
 
@@ -154,7 +155,7 @@ export default function AttendanceView() {
               <CheckCircle2 size={16} /> Submitted and signed by {session.name}
             </span>
           ) : <span />}
-          <Button onClick={handleSubmit}>Submit &amp; sign off</Button>
+          {isEducator && <Button onClick={handleSubmit}>Submit &amp; sign off</Button>}
         </div>
       </Card>
 

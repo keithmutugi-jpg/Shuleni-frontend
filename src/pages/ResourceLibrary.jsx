@@ -107,7 +107,7 @@ export default function ResourceLibrary() {
           </p>
         ) : (
           visible.map((f, i) => (
-            <FolderCard key={f.id} folder={summarize(f)} isLast={i === visible.length - 1} />
+            <FolderCard key={f.id} folder={summarize(f)} files={f.files} isLast={i === visible.length - 1} />
           ))
         )}
       </Card>
