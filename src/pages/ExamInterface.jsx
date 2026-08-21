@@ -4,8 +4,8 @@ import { Clock, X, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { submitExamResult } from '../store/db';
-import { examBank } from '../data/examBank';
+import { submitExamResult, listExams } from '../store/db';
+import { examBank as fallbackExamBank } from '../data/examBank';
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -22,6 +22,8 @@ function formatTime(totalSeconds) {
 export default function ExamInterface() {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const schoolExams = listExams(session.schoolId);
+  const examBank = schoolExams.length > 0 ? schoolExams[0] : fallbackExamBank;
   const [secondsLeft, setSecondsLeft] = useState(examBank.minutes * 60);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});

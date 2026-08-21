@@ -1,5 +1,6 @@
-import { ChevronRight } from 'lucide-react';
-import { Card, Pill } from '../components/ui';
+import { ChevronRight, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Card, Pill, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
 import { listUsers, listExamResults, listAttendance } from '../store/db';
 import { todaysClasses } from '../data/mock';
@@ -49,6 +50,12 @@ export default function EducatorDashboard() {
         </div>
         <DateBadge month={today.toLocaleString('en-GB', { month: 'short' }).toUpperCase()} day={today.getDate()} />
       </Card>
+
+      <Link to="/educator/create-exam">
+        <Button>
+          <Plus size={15} /> Create exam
+        </Button>
+      </Link>
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card padded={false} className="overflow-hidden">

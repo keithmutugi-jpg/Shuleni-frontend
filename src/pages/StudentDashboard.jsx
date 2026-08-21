@@ -2,9 +2,9 @@ import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Pill, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { listExamResults } from '../store/db';
+import { listExamResults, listExams } from '../store/db';
 import { studentSchedule } from '../data/mock';
-import { examBank } from '../data/examBank';
+import { examBank as fallbackExamBank } from '../data/examBank';
 
 function DateBadge({ month, day }) {
   return (
@@ -21,6 +21,8 @@ function DateBadge({ month, day }) {
 export default function StudentDashboard() {
   const { session } = useAuth();
   const results = listExamResults(session.schoolId, session.userId);
+  const schoolExams = listExams(session.schoolId);
+  const examBank = schoolExams.length > 0 ? schoolExams[0] : fallbackExamBank;
   const today = new Date();
 
   return (

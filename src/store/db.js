@@ -15,6 +15,7 @@ const KEYS = {
   attendance: 'shuleni.attendance',
   resources: 'shuleni.resources',
   chats: 'shuleni.chats',
+  exams: 'shuleni.exams',
   examResults: 'shuleni.examResults',
   session: 'shuleni.session',
 };
@@ -91,6 +92,7 @@ function seedIfEmpty() {
 
   write(KEYS.attendance, { [schoolId]: [] });
   write(KEYS.examResults, { [schoolId]: [] });
+  write(KEYS.exams, { [schoolId]: [] });
 }
 
 seedIfEmpty();
@@ -132,6 +134,10 @@ export function createSchool({ schoolName, ownerName, email, username, password 
   const examResults = read(KEYS.examResults, {});
   examResults[id] = [];
   write(KEYS.examResults, examResults);
+
+  const exams = read(KEYS.exams, {});
+  exams[id] = [];
+  write(KEYS.exams, exams);
 
   return { school: schools[id], owner };
 }
@@ -247,6 +253,31 @@ export function sendMessage(schoolId, roomId, { authorName, authorRole, text }) 
 }
 
 // ---------------------------------------------------------------------
+// Exams — created by educators, taken by students, scoped to a school
+export function listExams(schoolId) {
+  return read(KEYS.exams, {})[schoolId] || [];
+}
+
+export function getExam(schoolId, examId) {
+  return listExams(schoolId).find((e) => e.id === examId) || null;
+}
+
+export function createExam(schoolId, { title, minutes, questions }) {
+  const exams = read(KEYS.exams, {});
+  const list = exams[schoolId] || [];
+  const entry = {
+    id: uid('exm'),
+    title,
+    minutes,
+    questions,
+    createdAt: new Date().toISOString(),
+  };
+  list.unshift(entry);
+  exams[schoolId] = list;
+  write(KEYS.exams, exams);
+  return entry;
+}
+
 // Exam results — scoped to a school
 // ---------------------------------------------------------------------
 export function listExamResults(schoolId, studentId) {
