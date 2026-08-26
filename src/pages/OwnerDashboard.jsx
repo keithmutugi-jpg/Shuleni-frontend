@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, LogOut } from 'lucide-react';
 import { Card, Button, Avatar, Pill } from '../components/ui';
 import UserManagementModal from '../components/UserManagementModal';
 import { useAuth } from '../store/AuthContext';
-import { listUsers, addUser, listResources } from '../store/db';
+import { listResources } from '../store/db';
+import { apiListUsers, apiAddUser } from '../lib/api';
 
 /**
  * Owner's home base: a live snapshot of THIS school only (never
@@ -11,10 +12,15 @@ import { listUsers, addUser, listResources } from '../store/db';
  * plus a working "add person" flow that actually creates accounts.
  */
 export default function OwnerDashboard() {
-  const { session, logout } = useAuth();
+  const { session, token, logout } = useAuth();
   const [showAddUser, setShowAddUser] = useState(false);
-  const [users, setUsers] = useState(() => listUsers(session.schoolId));
+  const [users, setUsers] = useState([]);
+  const [addError, setAddError] = useState('');
   const resources = listResources(session.schoolId);
+
+  useEffect(() => {
+    apiListUsers(token).then(setUsers).catch(() => setUsers([]));
+  }, [token]);
 
   const stats = useMemo(() => {
     const students = users.filter((u) => u.role === 'student').length;
@@ -29,9 +35,14 @@ export default function OwnerDashboard() {
     ];
   }, [users, resources]);
 
-  function handleCreate(payload) {
-    const user = addUser(session.schoolId, payload);
-    setUsers((list) => [user, ...list]);
+  async function handleCreate(payload) {
+    setAddError('');
+    try {
+      const user = await apiAddUser(token, payload);
+      setUsers((list) => [user, ...list]);
+    } catch (err) {
+      setAddError(err.message);
+    }
   }
 
   const recent = users.slice(-6).reverse();
@@ -91,6 +102,10 @@ export default function OwnerDashboard() {
           </ul>
         )}
       </Card>
+
+      {addError && (
+        <p className="text-sm rounded-xl px-3.5 py-3" style={{ background: '#fdecea', color: '#c0392b' }}>{addError}</p>
+      )}
 
       {showAddUser && <UserManagementModal onClose={() => setShowAddUser(false)} onCreate={handleCreate} />}
     </div>

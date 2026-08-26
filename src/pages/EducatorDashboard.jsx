@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { ChevronRight, Plus, CalendarPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Pill, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { listUsers, listExamResults, listAttendance } from '../store/db';
+import { listExamResults, listAttendance } from '../store/db';
+import { apiListUsers } from '../lib/api';
 import { todaysClasses } from '../data/mock';
 
 function DateBadge({ month, day }) {
@@ -30,9 +32,16 @@ function SectionHeader({ title }) {
 }
 
 export default function EducatorDashboard() {
-  const { session } = useAuth();
+  const { session, token } = useAuth();
   const today = new Date();
-  const students = listUsers(session.schoolId).filter((u) => u.role === 'student');
+  const [students, setStudents] = useState([]);
+
+  useEffect(() => {
+    apiListUsers(token)
+      .then((list) => setStudents(list.filter((u) => u.role === 'student')))
+      .catch(() => setStudents([]));
+  }, [token]);
+
   const classCount = new Set(students.map((s) => s.classGroup).filter(Boolean)).size;
   const recentResults = listExamResults(session.schoolId).slice(0, 5);
   const recentAttendance = listAttendance(session.schoolId).slice(0, 5);

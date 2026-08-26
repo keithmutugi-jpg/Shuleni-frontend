@@ -3,7 +3,8 @@ import { Calendar, Clock, CheckCircle2 } from 'lucide-react';
 import { Card, Button } from '../components/ui';
 import StudentRosterTable from '../components/StudentRosterTable';
 import { useAuth } from '../store/AuthContext';
-import { listUsers, submitAttendance, listAttendance } from '../store/db';
+import { submitAttendance, listAttendance } from '../store/db';
+import { apiListUsers } from '../lib/api';
 
 const SUBJECTS = ['Mathematics', 'Physics', 'Science', 'English', 'History', 'Geography'];
 
@@ -12,15 +13,28 @@ function initialsOf(name) {
 }
 
 export default function AttendanceView() {
-  const { session } = useAuth();
+  const { session, token } = useAuth();
   const isEducator = session.role === 'educator' || session.role === 'owner';
-  const allStudents = useMemo(() => listUsers(session.schoolId).filter((u) => u.role === 'student'), [session.schoolId]);
+  const [allStudents, setAllStudents] = useState([]);
+
+  useEffect(() => {
+    apiListUsers(token)
+      .then((list) => setAllStudents(list.filter((u) => u.role === 'student')))
+      .catch(() => setAllStudents([]));
+  }, [token]);
+
   const classGroups = useMemo(
     () => [...new Set(allStudents.map((s) => s.classGroup).filter(Boolean))],
     [allStudents]
   );
 
-  const [classGroup, setClassGroup] = useState(classGroups[0] || '');
+  const [classGroup, setClassGroup] = useState('');
+
+  // classGroups now arrives asynchronously (after the user list loads),
+  // so pick the first one once it's actually available.
+  useEffect(() => {
+    if (!classGroup && classGroups.length > 0) setClassGroup(classGroups[0]);
+  }, [classGroups]); // eslint-disable-line react-hooks/exhaustive-deps
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [students, setStudents] = useState([]);

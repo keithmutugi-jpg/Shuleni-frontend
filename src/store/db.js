@@ -1,18 +1,20 @@
 /**
- * Lightweight persistence layer standing in for the Flask/PostgreSQL
- * backend until it's ready. Everything is namespaced by schoolId so
- * two different schools' data can never mix — the same isolation
- * rule the real backend will enforce with tenant-scoped queries.
+ * Lightweight persistence layer standing in for a real backend.
  *
- * Swap the bodies of these functions for real `fetch()` calls to the
- * Flask API later; every page already talks to this file only, never
- * to localStorage directly, so that swap won't touch the UI code.
+ * PHASE 1 UPDATE: authentication (school registration, login, logout,
+ * session) now talks to the real Django backend — see src/lib/api.js
+ * and src/store/AuthContext.jsx. Every other domain below (users,
+ * resources, attendance, chats, exams, classes, timetables) still
+ * runs on localStorage until those get their own backend endpoints.
+ * Everything remaining here is namespaced by schoolId so two schools'
+ * data can never mix, mirroring the isolation the real backend will
+ * enforce with tenant-scoped queries once it grows to cover these
+ * domains too.
  */
 
 import { examBank } from '../data/examBank';
 
 const KEYS = {
-  schools: 'shuleni.schools',
   users: 'shuleni.users',
   attendance: 'shuleni.attendance',
   resources: 'shuleni.resources',
@@ -21,7 +23,6 @@ const KEYS = {
   classes: 'shuleni.classes',
   timetables: 'shuleni.timetables',
   examResults: 'shuleni.examResults',
-  session: 'shuleni.session',
 };
 
 function read(key, fallback) {
@@ -41,18 +42,11 @@ function uid(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// ---------------------------------------------------------------------
-// Seed a demo school on first run so the app is usable immediately,
-// without forcing everyone to register before they can see anything.
-// ---------------------------------------------------------------------
 function seedIfEmpty() {
-  const schools = read(KEYS.schools, null);
-  if (schools) return;
+  const users = read(KEYS.users, null);
+  if (users) return;
 
   const schoolId = 'SCH-004';
-  write(KEYS.schools, {
-    [schoolId]: { id: schoolId, name: 'Greenfield Academy', createdAt: new Date().toISOString() },
-  });
 
   write(KEYS.users, {
     [schoolId]: [
@@ -114,7 +108,7 @@ seedIfEmpty();
 
 function migrateDemoData() {
   const schoolId = 'SCH-004';
-  if (!read(KEYS.schools, {})[schoolId]) return;
+  if (!read(KEYS.users, {})[schoolId]) return;
   const classes = read(KEYS.classes, {});
   if (!classes[schoolId]) {
     classes[schoolId] = [
@@ -144,113 +138,10 @@ function migrateDemoData() {
 
 migrateDemoData();
 
-// ---------------------------------------------------------------------
-// Schools
-// ---------------------------------------------------------------------
-export function findSchool(nameOrId) {
-  const schools = read(KEYS.schools, {});
-  const needle = nameOrId.trim().toLowerCase().replace(/^#/, '');
-  return Object.values(schools).find(
-    (s) => s.id.toLowerCase() === needle || s.name.toLowerCase() === needle
-  );
-}
-
-export function createSchool({ schoolName, ownerName, email, username, password }) {
-  const schools = read(KEYS.schools, {});
-  const id = uid('SCH').toUpperCase();
-  schools[id] = { id, name: schoolName, createdAt: new Date().toISOString() };
-  write(KEYS.schools, schools);
-
-  const users = read(KEYS.users, {});
-  const owner = { id: uid('usr'), role: 'owner', name: ownerName, username, password, email };
-  users[id] = [owner];
-  write(KEYS.users, users);
-
-  const resources = read(KEYS.resources, {});
-  resources[id] = [];
-  write(KEYS.resources, resources);
-
-  const chats = read(KEYS.chats, {});
-  chats[id] = [{ id: uid('room'), name: 'General Announcements', classGroup: null, messages: [] }];
-  write(KEYS.chats, chats);
-
-  const attendance = read(KEYS.attendance, {});
-  attendance[id] = [];
-  write(KEYS.attendance, attendance);
-
-  const examResults = read(KEYS.examResults, {});
-  examResults[id] = [];
-  write(KEYS.examResults, examResults);
-
-  const exams = read(KEYS.exams, {});
-  exams[id] = [];
-  write(KEYS.exams, exams);
-
-  const classes = read(KEYS.classes, {});
-  classes[id] = [];
-  write(KEYS.classes, classes);
-
-  const timetables = read(KEYS.timetables, {});
-  timetables[id] = {};
-  write(KEYS.timetables, timetables);
-
-  return { school: schools[id], owner };
-}
-
-// ---------------------------------------------------------------------
-// Auth / session
-// ---------------------------------------------------------------------
-export function login({ schoolNameOrId, username, password }) {
-  const school = findSchool(schoolNameOrId);
-  if (!school) return { error: 'No school matches that name or ID.' };
-
-  const users = read(KEYS.users, {})[school.id] || [];
-  const user = users.find((u) => u.username === username && u.password === password);
-  if (!user) return { error: 'Incorrect username or password for this school.' };
-
-  const session = { schoolId: school.id, schoolName: school.name, userId: user.id, name: user.name, role: user.role };
-  write(KEYS.session, session);
-  return { session };
-}
-
-export function logout() {
-  localStorage.removeItem(KEYS.session);
-}
-
-export function getSession() {
-  return read(KEYS.session, null);
-}
-
-// ---------------------------------------------------------------------
-// Users (students / educators) — scoped to a school
-// ---------------------------------------------------------------------
-export function listUsers(schoolId) {
+function listUsers(schoolId) {
   return read(KEYS.users, {})[schoolId] || [];
 }
 
-export function addUser(schoolId, { role, name, email, classGroup, username, password }) {
-  const users = read(KEYS.users, {});
-  const list = users[schoolId] || [];
-  const id = role === 'student' ? uid('STU').toUpperCase() : uid('usr');
-  const user = {
-    id,
-    role,
-    name,
-    email,
-    classGroup: role === 'student' ? classGroup : undefined,
-    subjects: role === 'educator' ? classGroup : undefined,
-    username: username || email?.split('@')[0] || name.toLowerCase().replace(/\s+/g, '.'),
-    password: password || 'changeme123',
-  };
-  list.push(user);
-  users[schoolId] = list;
-  write(KEYS.users, users);
-  return user;
-}
-
-// ---------------------------------------------------------------------
-// Resources — scoped to a school
-// ---------------------------------------------------------------------
 export function listResources(schoolId) {
   return read(KEYS.resources, {})[schoolId] || [];
 }
@@ -271,9 +162,6 @@ export function addResourceFile(schoolId, { subject, fileName, restricted, dataU
   return folder;
 }
 
-// ---------------------------------------------------------------------
-// Attendance — scoped to a school
-// ---------------------------------------------------------------------
 export function listAttendance(schoolId) {
   return read(KEYS.attendance, {})[schoolId] || [];
 }
@@ -288,9 +176,6 @@ export function submitAttendance(schoolId, record) {
   return entry;
 }
 
-// ---------------------------------------------------------------------
-// Chats — scoped to a school
-// ---------------------------------------------------------------------
 export function listChatRooms(schoolId) {
   return read(KEYS.chats, {})[schoolId] || [];
 }
@@ -307,8 +192,6 @@ export function sendMessage(schoolId, roomId, { authorName, authorRole, text }) 
   return message;
 }
 
-// ---------------------------------------------------------------------
-// Exams — created by educators, taken by students, scoped to a school
 export function listExams(schoolId) {
   return read(KEYS.exams, {})[schoolId] || [];
 }
@@ -336,7 +219,6 @@ export function createExam(schoolId, { title, minutes, questions, classId, avail
   return entry;
 }
 
-// Classes and personal timetables are persisted per school/user.
 export function listClasses(schoolId) {
   return read(KEYS.classes, {})[schoolId] || [];
 }
@@ -393,8 +275,6 @@ export function removeTimetableEntry(schoolId, userId, entryId) {
   write(KEYS.timetables, timetables);
 }
 
-// Exam results — scoped to a school
-// ---------------------------------------------------------------------
 export function listExamResults(schoolId, studentId) {
   const all = read(KEYS.examResults, {})[schoolId] || [];
   return studentId ? all.filter((r) => r.studentId === studentId) : all;

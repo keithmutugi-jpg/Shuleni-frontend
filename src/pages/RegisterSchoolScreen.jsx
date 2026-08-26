@@ -4,7 +4,6 @@ import { School, Mail, User, Lock, ArrowRight, ArrowLeft, AlertCircle } from 'lu
 import Logo from '../components/Logo';
 import { Card, Field, Input, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { findSchool } from '../store/db';
 
 /**
  * Onboarding for a brand-new, isolated school. Actually creates a
@@ -29,22 +28,24 @@ export default function RegisterSchoolScreen() {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
-    if (findSchool(form.schoolName)) {
-      setError('A school with that name already exists — try a more specific name.');
-      return;
-    }
     if (form.password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
     }
 
     setSubmitting(true);
-    register(form);
+    const result = await register(form);
     setSubmitting(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
     navigate('/owner/home');
   }
 

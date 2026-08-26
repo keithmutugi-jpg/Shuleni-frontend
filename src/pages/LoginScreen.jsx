@@ -27,12 +27,12 @@ export default function LoginScreen() {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setSubmitting(true);
 
-    const result = login({
+    const result = await login({
       schoolNameOrId: form.school,
       username: form.username,
       password: form.password,
@@ -104,10 +104,10 @@ export default function LoginScreen() {
           </p>
 
           <div className="rounded-xl border px-3.5 py-3 text-xs" style={{ borderColor: 'var(--sh-border)', color: 'var(--sh-ink-faint)' }}>
-            <p className="font-semibold mb-1" style={{ color: 'var(--sh-ink-soft)' }}>Try the demo school</p>
-            School: <strong>Greenfield Academy</strong> (or #SCH-004)<br />
-            Owner — owner / owner123 &middot; Educator — teacher.john / teacher123<br />
-            Student — amara.osei / student123
+            <p className="font-semibold mb-1" style={{ color: 'var(--sh-ink-soft)' }}>New here?</p>
+            School accounts now live on the real backend — register your
+            school above to get an owner login, then add educators and
+            students from the owner dashboard.
           </div>
         </form>
       </Card>

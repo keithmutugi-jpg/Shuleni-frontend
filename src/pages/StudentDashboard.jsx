@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Pill, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { listExamResults, listExams, listTimetable, listClasses, listUsers } from '../store/db';
+import { listExamResults, listExams, listTimetable, listClasses } from '../store/db';
+import { apiListUsers } from '../lib/api';
 import { examBank as fallbackExamBank } from '../data/examBank';
 
 function DateBadge({ month, day }) {
@@ -18,10 +20,17 @@ function DateBadge({ month, day }) {
 }
 
 export default function StudentDashboard() {
-  const { session } = useAuth();
+  const { session, token } = useAuth();
   const results = listExamResults(session.schoolId, session.userId);
   const schoolExams = listExams(session.schoolId);
-  const student = listUsers(session.schoolId).find((user) => user.id === session.userId);
+  const [student, setStudent] = useState(null);
+
+  useEffect(() => {
+    apiListUsers(token)
+      .then((list) => setStudent(list.find((user) => user.id === session.userId) || null))
+      .catch(() => setStudent(null));
+  }, [token, session.userId]);
+
   const assignedClassIds = new Set(listClasses(session.schoolId).filter((item) => item.name === student?.classGroup).map((item) => item.id));
   const exams = schoolExams.length > 0 ? schoolExams.filter((exam) => !exam.classId || assignedClassIds.has(exam.classId)) : [fallbackExamBank];
   const schedule = listTimetable(session.schoolId, session.userId);

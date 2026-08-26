@@ -1,34 +1,69 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import * as db from './db';
+import { apiRegisterSchool, apiLogin, apiLogout } from '../lib/api';
 
 const AuthContext = createContext(null);
+const SESSION_KEY = 'shuleni.session'; // { session: {...}, token: '...' }
+
+function readStoredSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSession(value) {
+  if (value) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(value));
+  } else {
+    localStorage.removeItem(SESSION_KEY);
+  }
+}
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(() => db.getSession());
+  const [stored, setStored] = useState(() => readStoredSession());
+  const session = stored?.session || null;
 
-  const login = useCallback((credentials) => {
-    const result = db.login(credentials);
-    if (result.session) setSession(result.session);
-    return result;
+  const login = useCallback(async (credentials) => {
+    try {
+      const { session, token } = await apiLogin(credentials);
+      const next = { session, token };
+      writeStoredSession(next);
+      setStored(next);
+      return { session };
+    } catch (err) {
+      return { error: err.message };
+    }
   }, []);
 
-  const register = useCallback((form) => {
-    const { school, owner } = db.createSchool(form);
-    const newSession = { schoolId: school.id, schoolName: school.name, userId: owner.id, name: owner.name, role: owner.role };
-    // Reuse db.login's session write so getSession() stays consistent.
-    db.login({ schoolNameOrId: school.id, username: owner.username, password: owner.password });
-    setSession(newSession);
-    return { school, owner };
+  const register = useCallback(async (form) => {
+    try {
+      const { school, session, token } = await apiRegisterSchool(form);
+      const next = { session, token };
+      writeStoredSession(next);
+      setStored(next);
+      return { school };
+    } catch (err) {
+      return { error: err.message };
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    db.logout();
-    setSession(null);
-  }, []);
+  const logout = useCallback(async () => {
+    if (stored?.token) {
+      try {
+        await apiLogout(stored.token);
+      } catch {
+        // Even if the network call fails, still clear the local session.
+      }
+    }
+    writeStoredSession(null);
+    setStored(null);
+  }, [stored]);
 
   return (
-    <AuthContext.Provider value={{ session, login, register, logout }}>
+    <AuthContext.Provider value={{ session, token: stored?.token || null, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
