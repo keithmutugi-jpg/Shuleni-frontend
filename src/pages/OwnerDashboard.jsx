@@ -40,8 +40,10 @@ export default function OwnerDashboard() {
     try {
       const user = await apiAddUser(token, payload);
       setUsers((list) => [user, ...list]);
+      return true;
     } catch (err) {
       setAddError(err.message);
+      return false;
     }
   }
 
