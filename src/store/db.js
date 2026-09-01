@@ -177,7 +177,37 @@ export function submitAttendance(schoolId, record) {
 }
 
 export function listChatRooms(schoolId) {
+  // Ensure chat rooms are initialized for this schoolId
+  ensureChatRoomsInitialized(schoolId);
   return read(KEYS.chats, {})[schoolId] || [];
+}
+
+function ensureChatRoomsInitialized(schoolId) {
+  const chats = read(KEYS.chats, {});
+  if (chats[schoolId] && chats[schoolId].length > 0) {
+    return; // Already initialized
+  }
+  
+  // Create sample chat rooms for this schoolId
+  chats[schoolId] = [
+    {
+      id: uid('room'),
+      name: 'General Announcements',
+      classGroup: null,
+      messages: [
+        { id: uid('msg'), authorName: 'Admin', authorRole: 'owner', text: 'Welcome to the chat! This is where you can communicate with your class.', at: new Date().toISOString() },
+      ],
+    },
+    {
+      id: uid('room'),
+      name: 'Class Discussion',
+      classGroup: 'Form 3B',
+      messages: [
+        { id: uid('msg'), authorName: 'Teacher', authorRole: 'educator', text: 'Feel free to ask questions here!', at: new Date().toISOString() },
+      ],
+    },
+  ];
+  write(KEYS.chats, chats);
 }
 
 export function sendMessage(schoolId, roomId, { authorName, authorRole, text }) {
