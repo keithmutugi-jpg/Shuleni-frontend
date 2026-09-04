@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, Paperclip, Send } from 'lucide-react';
 import { Avatar, Input, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
@@ -73,22 +73,26 @@ function MessageBubble({ msg, mine }) {
 
 export default function ChatRoom() {
   const { session } = useAuth();
-  const [rooms, setRooms] = useState(() => listChatRooms(session.schoolId));
-  const [activeRoomId, setActiveRoomId] = useState(rooms[0]?.id);
+  const [rooms, setRooms] = useState([]);
+  const [activeRoomId, setActiveRoomId] = useState(null);
+  useEffect(() => {
+    listChatRooms(session.schoolId).then((data) => {
+      setRooms(data);
+      setActiveRoomId((current) => current || data[0]?.id || null);
+    }).catch(() => {});
+  }, [session.schoolId]);
   const [draft, setDraft] = useState('');
 
   const room = useMemo(() => rooms.find((r) => r.id === activeRoomId), [rooms, activeRoomId]);
 
-  function handleSend(e) {
+  async function handleSend(e) {
     e.preventDefault();
     if (!draft.trim() || !room) return;
-    sendMessage(session.schoolId, room.id, {
-      authorName: session.name,
-      authorRole: session.role,
-      text: draft.trim(),
-    });
-    setRooms(listChatRooms(session.schoolId));
-    setDraft('');
+    try {
+      const message = await sendMessage(session.schoolId, room.id, { text: draft.trim() });
+      setRooms((current) => current.map((r) => r.id === room.id ? { ...r, messages: [...r.messages, message] } : r));
+      setDraft('');
+    } catch {}
   }
 
   if (rooms.length === 0) {

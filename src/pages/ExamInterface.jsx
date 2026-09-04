@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Clock, X, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, X, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { Card, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
 import { submitExamResult, listExams } from '../store/db';
-import { examBank as fallbackExamBank } from '../data/examBank';
 
 function formatTime(totalSeconds) {
   const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
@@ -21,28 +20,37 @@ function formatTime(totalSeconds) {
  */
 export default function ExamInterface() {
   const navigate = useNavigate();
-  const { examId } = useParams();
   const { session } = useAuth();
-  const schoolExams = listExams(session.schoolId);
-  const examBank = schoolExams.find((exam) => exam.id === examId) || (examId === 'exam' ? schoolExams[0] : null) || fallbackExamBank;
-  const [consented, setConsented] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(examBank.minutes * 60);
+  const [examBank, setExamBank] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    listExams(session.schoolId)
+      .then((exams) => setExamBank(exams[0] || null))
+      .catch((e) => setLoadError(e.message));
+  }, [session.schoolId]);
+
+  const [secondsLeft, setSecondsLeft] = useState(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
   const [violations, setViolations] = useState(0);
+  const submittingRef = useRef(false);
   const MAX_VIOLATIONS = 3;
 
   useEffect(() => {
-    if (!consented || result || secondsLeft <= 0) return;
-    const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(t);
-  }, [secondsLeft, result, consented]);
+    if (examBank && !result && secondsLeft === 0) setSecondsLeft(examBank.minutes * 60);
+  }, [examBank, result, secondsLeft]);
 
   useEffect(() => {
-    if (secondsLeft === 0 && !result) handleSubmit();
+    if (!examBank || result || secondsLeft === null || secondsLeft <= 0) return;
+    const t = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, [secondsLeft, result]);
+
+  useEffect(() => {
+    if (examBank && secondsLeft === 0 && !result) handleSubmit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondsLeft]);
+  }, [secondsLeft, examBank]);
 
   // Basic anti-plagiarism: flag when the student leaves the exam tab/window.
   // After MAX_VIOLATIONS the exam auto-submits with whatever's answered so far.
@@ -72,22 +80,33 @@ export default function ExamInterface() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [violations]);
 
+  if (loadError) {
+    return <div className="sh-canvas flex items-center justify-center px-4 py-8"><Card className="w-full max-w-md text-center"><h1 className="text-xl font-bold mb-2">Exam unavailable</h1><p className="text-sm" style={{ color: 'var(--sh-ink-faint)' }}>{loadError}</p><Button className="w-full mt-5" onClick={() => navigate('/student/home')}>Back to dashboard</Button></Card></div>;
+  }
+  if (!examBank) {
+    return <div className="sh-canvas flex items-center justify-center px-4 py-8"><Card className="w-full max-w-md text-center"><h1 className="text-xl font-bold mb-2">No exam available</h1><p className="text-sm" style={{ color: 'var(--sh-ink-faint)' }}>Your educators have not published an exam yet.</p><Button className="w-full mt-5" onClick={() => navigate('/student/home')}>Back to dashboard</Button></Card></div>;
+  }
+
   const question = examBank.questions[index];
   const answeredCount = Object.keys(answers).length;
-  const low = secondsLeft <= 60;
+  const low = secondsLeft !== null && secondsLeft <= 60;
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    if (!examBank || submittingRef.current || result) return;
+    submittingRef.current = true;
     const total = examBank.questions.length;
-    const correct = examBank.questions.filter((q) => answers[q.id] === q.correctIndex).length;
-    const entry = submitExamResult(session.schoolId, {
-      studentId: session.userId,
-      studentName: session.name,
-      examTitle: examBank.title,
-      score: correct,
-      total,
-      timeTakenSeconds: examBank.minutes * 60 - secondsLeft,
-    });
-    setResult(entry);
+    try {
+      const entry = await submitExamResult(session.schoolId, {
+        examId: examBank.id,
+        answers,
+        timeTakenSeconds: examBank.minutes * 60 - secondsLeft,
+        violations,
+      });
+      setResult(entry);
+    } catch (e) {
+      submittingRef.current = false;
+      setLoadError(e.message);
+    }
   }
 
   if (result) {
@@ -105,17 +124,6 @@ export default function ExamInterface() {
         </Card>
       </div>
     );
-  }
-
-  if (!consented) {
-    return <div className="sh-canvas flex items-center justify-center px-4 py-8"><Card className="w-full max-w-xl">
-      <AlertTriangle size={34} className="mb-4" style={{ color: '#c0392b' }} />
-      <h1 className="text-xl font-extrabold mb-2">Before you begin</h1>
-      <p className="text-sm leading-6" style={{ color: 'var(--sh-ink-soft)' }}>This assessment is monitored. Plagiarism, collusion, using unauthorised help, or leaving the exam window may be flagged and can lead to disciplinary consequences.</p>
-      <label className="flex gap-3 items-start mt-6 text-sm"><input type="checkbox" checked={consented} onChange={(e) => setConsented(e.target.checked)} className="mt-1" /> I promise not to cheat or plagiarise, and I understand and accept the consequences if I do.</label>
-      <Button className="w-full mt-6" disabled={!consented} onClick={() => setConsented(true)}>I understand, start exam</Button>
-      <Button variant="secondary" className="w-full mt-2" onClick={() => navigate('/student/home')}>Cancel</Button>
-    </Card></div>;
   }
 
   return (

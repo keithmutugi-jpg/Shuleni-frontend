@@ -38,15 +38,18 @@ export default function RegisterSchoolScreen() {
     }
 
     setSubmitting(true);
-    const result = await register(form);
-    setSubmitting(false);
-
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await register(form);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      navigate('/owner/home');
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setSubmitting(false);
     }
-
-    navigate('/owner/home');
   }
 
   return (

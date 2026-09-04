@@ -22,7 +22,7 @@ export default function AppShell({ base, footerLabel }) {
 
       <footer className="text-center py-6">
         <p className="text-xs tracking-widest" style={{ color: 'var(--sh-ink-faint)' }}>
-          <Link to="/" className="hover:underline" onClick={logout}>
+          <Link to="/" className="hover:underline">
             &larr; BACK TO LOGIN
           </Link>
           {footerLabel && <> &nbsp;&middot;&nbsp; SHULENI &mdash; {footerLabel.toUpperCase()} &mdash; LOW FIDELITY</>}

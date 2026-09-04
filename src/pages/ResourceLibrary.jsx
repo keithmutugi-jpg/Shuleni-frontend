@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { Card, Input } from '../components/ui';
 import FolderCard from '../components/FolderCard';
@@ -25,20 +25,50 @@ function summarize(folder) {
 
 export default function ResourceLibrary() {
   const { session } = useAuth();
+  const canUpload = session.role === 'owner' || session.role === 'educator';
   const [tab, setTab] = useState(TABS[0]);
   const [query, setQuery] = useState('');
   const [showUpload, setShowUpload] = useState(false);
-  const [folders, setFolders] = useState(() => listResources(session.schoolId));
+  const [folders, setFolders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const visible = useMemo(
-    () => folders.filter((f) => f.subject.toLowerCase().includes(query.toLowerCase())),
-    [folders, query]
-  );
+  async function refresh() {
+    try {
+      setError('');
+      setFolders(await listResources(session.schoolId));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { refresh(); }, [session.schoolId]);
+
+  const visible = useMemo(() => {
+    const q = query.toLowerCase();
+    return folders.filter((f) => {
+      if (!f.subject.toLowerCase().includes(q)) return false;
+      if (tab === 'Restricted') return f.access === 'restricted';
+      if (tab === 'Open') return f.access === 'open';
+      if (tab === 'Recently edited') {
+        const latest = Math.max(0, ...f.files.map((file) => new Date(file.uploadedAt).getTime()));
+        return latest && Date.now() - latest <= 7 * 24 * 60 * 60 * 1000;
+      }
+      return true;
+    });
+  }, [folders, query, tab]);
   const totalFiles = folders.reduce((sum, f) => sum + f.files.length, 0);
 
-  function handleUpload({ subject, fileName, restricted, dataUrl, mimeType }) {
-    addResourceFile(session.schoolId, { subject, fileName, restricted, dataUrl, mimeType });
-    setFolders(listResources(session.schoolId));
+  async function handleUpload({ subject, fileName, restricted, file }) {
+    try {
+      setError('');
+      await addResourceFile(session.schoolId, { subject, fileName, restricted, file });
+      await refresh();
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   return (
@@ -63,17 +93,20 @@ export default function ResourceLibrary() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setShowUpload(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
-            style={{ background: 'var(--sh-black)' }}
-          >
-            <Plus size={15} /> Add Resource
-          </button>
+          {canUpload && (
+            <button
+              type="button"
+              onClick={() => setShowUpload(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+              style={{ background: 'var(--sh-black)' }}
+            >
+              <Plus size={15} /> Add Resource
+            </button>
+          )}
         </div>
       </div>
 
+      {error && <p className="text-sm rounded-xl px-3.5 py-3" style={{ background: '#fdecea', color: '#c0392b' }}>{error}</p>}
       <Card padded={false} className="overflow-hidden">
         {/* Tabs */}
         <div className="flex items-center gap-1 px-4 pt-4">
@@ -101,7 +134,9 @@ export default function ResourceLibrary() {
           <span>Access</span>
         </div>
 
-        {visible.length === 0 ? (
+        {loading ? (
+          <p className="px-5 py-8 text-sm text-center" style={{ color: 'var(--sh-ink-faint)' }}>Loading resources…</p>
+        ) : visible.length === 0 ? (
           <p className="px-5 py-8 text-sm text-center" style={{ color: 'var(--sh-ink-faint)' }}>
             {folders.length === 0 ? 'No resources yet — add the first one.' : `No folders match "${query}".`}
           </p>

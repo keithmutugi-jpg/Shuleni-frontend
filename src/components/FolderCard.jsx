@@ -66,9 +66,19 @@ export default function FolderCard({ folder, files, isLast }) {
                 style={{ borderColor: 'var(--sh-border)', background: 'var(--sh-surface)' }}
               >
                 <FileText size={14} style={{ color: 'var(--sh-ink-faint)', flexShrink: 0 }} />
-                {file.dataUrl ? (
-                  <a href={file.dataUrl} target="_blank" rel="noreferrer" className="flex-1 truncate font-medium hover:underline" onClick={(e) => e.stopPropagation()}>{file.name}</a>
-                ) : <span className="flex-1 truncate font-medium">{file.name}</span>}
+                {file.url ? (
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 truncate font-medium underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {file.name}
+                  </a>
+                ) : (
+                  <span className="flex-1 truncate font-medium">{file.name}</span>
+                )}
                 <span style={{ color: 'var(--sh-ink-faint)', fontSize: '0.75rem' }}>{formatSize(file.sizeKb)}</span>
                 <span style={{ color: 'var(--sh-ink-faint)', fontSize: '0.75rem' }}>{formatDate(file.uploadedAt)}</span>
               </div>

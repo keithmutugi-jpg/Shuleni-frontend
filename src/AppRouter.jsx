@@ -12,8 +12,6 @@ import AttendanceView from './pages/AttendanceView';
 import ChatRoom from './pages/ChatRoom';
 import ExamInterface from './pages/ExamInterface';
 import CreateExamScreen from './pages/CreateExamScreen';
-import CreateClassScreen from './pages/CreateClassScreen';
-import Timetable from './pages/Timetable';
 
 /**
  * Keith's area: authentication, routing and role-based access.
@@ -58,8 +56,6 @@ export default function AppRouter() {
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<EducatorDashboard />} />
             <Route path="create-exam" element={<CreateExamScreen />} />
-            <Route path="create-class" element={<CreateClassScreen />} />
-            <Route path="timetable" element={<Timetable />} />
             <Route path="resources" element={<ResourceLibrary />} />
             <Route path="attendance" element={<AttendanceView />} />
             <Route path="chats" element={<ChatRoom />} />
@@ -79,12 +75,11 @@ export default function AppRouter() {
             <Route path="resources" element={<ResourceLibrary />} />
             <Route path="attendance" element={<AttendanceView />} />
             <Route path="chats" element={<ChatRoom />} />
-            <Route path="timetable" element={<Timetable />} />
           </Route>
 
           {/* Distraction-free exam, outside the shell but still guarded */}
           <Route
-            path="/student/exam/:examId?"
+            path="/student/exam"
             element={
               <RequireRole role="student">
                 <ExamInterface />

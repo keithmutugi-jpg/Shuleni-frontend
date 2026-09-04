@@ -59,14 +59,14 @@ Each role tree shares `resources`, `attendance`, and `chats` routes.
   `pages/StudentDashboard.jsx`, `pages/ExamInterface.jsx`,
   `pages/ChatRoom.jsx`
 
-All mock/sample data used to preview screens lives in `src/data/mock.js` —
-swap it out for real API calls as the backend comes online.
+Shared school data is now loaded from the Django REST API. `src/data/mock.js` remains only for static schedule/sample UI content.
 
-## Notes
+## API configuration
 
-- No real auth/API calls yet — `LoginScreen` and `RegisterSchoolScreen`
-  navigate straight to a dashboard on submit; wire these up to the Flask
-  backend when it's ready.
-- State management: currently local component state / hooks only. Bring in
-  Redux Toolkit slices per the project brief once shared state (current
-  user, current school) is needed across more screens.
+The frontend reads `VITE_API_URL` and defaults to the deployed Shuleni backend:
+`https://shuleni-backend.onrender.com/api`.
+
+For local development, create `.env` from `.env.example` and set:
+`VITE_API_URL=http://localhost:8000/api`.
+
+Resources, exams, attendance, chat messages, users and exam results are persisted server-side and are scoped to the authenticated school.

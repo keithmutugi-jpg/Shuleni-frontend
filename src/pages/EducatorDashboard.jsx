@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, Plus, CalendarPlus } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Pill, Button } from '../components/ui';
 import { useAuth } from '../store/AuthContext';
-import { listExamResults, listAttendance } from '../store/db';
-import { apiListUsers } from '../lib/api';
+import { listUsers, listExamResults, listAttendance } from '../store/db';
 import { todaysClasses } from '../data/mock';
 
 function DateBadge({ month, day }) {
@@ -32,19 +31,20 @@ function SectionHeader({ title }) {
 }
 
 export default function EducatorDashboard() {
-  const { session, token } = useAuth();
+  const { session } = useAuth();
   const today = new Date();
   const [students, setStudents] = useState([]);
-
+  const [recentResults, setRecentResults] = useState([]);
+  const [recentAttendance, setRecentAttendance] = useState([]);
   useEffect(() => {
-    apiListUsers(token)
-      .then((list) => setStudents(list.filter((u) => u.role === 'student')))
-      .catch(() => setStudents([]));
-  }, [token]);
-
+    Promise.all([listUsers(session.schoolId), listExamResults(session.schoolId), listAttendance(session.schoolId)])
+      .then(([users, results, attendance]) => {
+        setStudents(users.filter((u) => u.role === 'student'));
+        setRecentResults(results.slice(0, 5));
+        setRecentAttendance(attendance.slice(0, 5));
+      }).catch(() => {});
+  }, [session.schoolId]);
   const classCount = new Set(students.map((s) => s.classGroup).filter(Boolean)).size;
-  const recentResults = listExamResults(session.schoolId).slice(0, 5);
-  const recentAttendance = listAttendance(session.schoolId).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -65,10 +65,6 @@ export default function EducatorDashboard() {
           <Plus size={15} /> Create exam
         </Button>
       </Link>
-      <div className="flex gap-3 flex-wrap">
-        <Link to="/educator/create-class"><Button variant="secondary"><CalendarPlus size={15} /> Add class</Button></Link>
-        <Link to="/educator/timetable"><Button variant="secondary">Manage timetable</Button></Link>
-      </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card padded={false} className="overflow-hidden">

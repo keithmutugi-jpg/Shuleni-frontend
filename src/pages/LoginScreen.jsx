@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { School, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import Logo from '../components/Logo';
@@ -14,14 +14,10 @@ import { useAuth } from '../store/AuthContext';
  */
 export default function LoginScreen() {
   const navigate = useNavigate();
-  const { login, session } = useAuth();
+  const { login } = useAuth();
   const [form, setForm] = useState({ school: '', username: '', password: '' });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (session) navigate(`/${session.role}/home`, { replace: true });
-  }, [navigate, session]);
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -104,10 +100,10 @@ export default function LoginScreen() {
           </p>
 
           <div className="rounded-xl border px-3.5 py-3 text-xs" style={{ borderColor: 'var(--sh-border)', color: 'var(--sh-ink-faint)' }}>
-            <p className="font-semibold mb-1" style={{ color: 'var(--sh-ink-soft)' }}>New here?</p>
-            School accounts now live on the real backend — register your
-            school above to get an owner login, then add educators and
-            students from the owner dashboard.
+            <p className="font-semibold mb-1" style={{ color: 'var(--sh-ink-soft)' }}>Try the demo school</p>
+            School: <strong>Greenfield Academy</strong> (or #SCH-004)<br />
+            Owner — owner / owner123 &middot; Educator — teacher.john / teacher123<br />
+            Student — amara.osei / student123
           </div>
         </form>
       </Card>

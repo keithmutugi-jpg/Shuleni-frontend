@@ -11,23 +11,19 @@ export default function UserManagementModal({ onClose, onCreate }) {
   const [role, setRole] = useState('student');
   const [form, setForm] = useState({ name: '', email: '', classGroup: '' });
   const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(field) {
     return (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim()) {
       setError('Name and email are required.');
       return;
     }
-    setError('');
-    setIsSubmitting(true);
-    const created = await onCreate?.({ role, ...form });
-    setIsSubmitting(false);
-    if (created) onClose?.();
+    onCreate?.({ role, ...form });
+    onClose?.();
   }
 
   return (
@@ -79,8 +75,8 @@ export default function UserManagementModal({ onClose, onCreate }) {
             <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
-              {isSubmitting ? 'Adding...' : `Add ${role}`}
+            <Button type="submit" className="flex-1">
+              Add {role}
             </Button>
           </div>
         </form>

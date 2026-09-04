@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { Field, Input, Button } from './ui';
+import { ALL_CLASSES } from '../data/mock';
 
 const SUBJECTS = ['Mathematics', 'Science', 'Literature', 'History', 'Geography', 'Physical Education'];
 
@@ -14,17 +15,12 @@ export default function UploadResourceModal({ onClose, onUpload }) {
   const [title, setTitle] = useState('');
   const [restricted, setRestricted] = useState(true);
   const [fileName, setFileName] = useState('');
-  const [selectedFile, setSelectedFile] = useState({});
+  const [file, setFile] = useState(null);
   const [error, setError] = useState('');
 
   function handleFilePick(e) {
     const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = () => setSelectedFile({ dataUrl: reader.result, mimeType: file.type });
-      reader.readAsDataURL(file);
-    }
+    if (file) { setFile(file); setFileName(file.name); }
   }
 
   function handleSubmit(e) {
@@ -34,7 +30,7 @@ export default function UploadResourceModal({ onClose, onUpload }) {
       setError('Choose a file or give it a name.');
       return;
     }
-    onUpload?.({ subject, fileName: name, restricted, ...selectedFile });
+    onUpload?.({ subject, fileName: name, restricted, file });
     onClose?.();
   }
 
@@ -94,7 +90,7 @@ export default function UploadResourceModal({ onClose, onUpload }) {
               checked={restricted}
               onChange={(e) => setRestricted(e.target.checked)}
             />
-            Restrict access to specific classes
+            Mark this resource as restricted
           </label>
 
           {error && (

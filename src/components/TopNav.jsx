@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, ClipboardCheck, MessageSquare, CalendarDays, LogOut } from 'lucide-react';
+import { Home, FileText, ClipboardCheck, MessageSquare, LogOut } from 'lucide-react';
 import Logo from './Logo';
 import { Avatar } from './ui';
 
@@ -9,7 +9,6 @@ const NAV_ITEMS = [
   { to: 'resources', label: 'Resources', icon: FileText },
   { to: 'attendance', label: 'Attendance', icon: ClipboardCheck },
   { to: 'chats', label: 'Chats', icon: MessageSquare },
-  { to: 'timetable', label: 'Timetable', icon: CalendarDays },
 ];
 
 export default function TopNav({ base, session, onLogout }) {
@@ -62,10 +61,7 @@ export default function TopNav({ base, session, onLogout }) {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onLogout?.();
-                }}
+                onClick={onLogout}
                 className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm text-left"
                 style={{ color: 'var(--sh-ink)' }}
               >

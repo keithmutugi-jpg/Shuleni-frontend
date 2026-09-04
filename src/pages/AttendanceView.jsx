@@ -3,8 +3,7 @@ import { Calendar, Clock, CheckCircle2 } from 'lucide-react';
 import { Card, Button } from '../components/ui';
 import StudentRosterTable from '../components/StudentRosterTable';
 import { useAuth } from '../store/AuthContext';
-import { submitAttendance, listAttendance } from '../store/db';
-import { apiListUsers } from '../lib/api';
+import { listUsers, submitAttendance, listAttendance } from '../store/db';
 
 const SUBJECTS = ['Mathematics', 'Physics', 'Science', 'English', 'History', 'Geography'];
 
@@ -13,37 +12,37 @@ function initialsOf(name) {
 }
 
 export default function AttendanceView() {
-  const { session, token } = useAuth();
+  const { session } = useAuth();
   const isEducator = session.role === 'educator' || session.role === 'owner';
   const [allStudents, setAllStudents] = useState([]);
-
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    apiListUsers(token)
-      .then((list) => setAllStudents(list.filter((u) => u.role === 'student')))
-      .catch(() => setAllStudents([]));
-  }, [token]);
-
+    let alive = true;
+    Promise.all([listUsers(session.schoolId), listAttendance(session.schoolId)])
+      .then(([users, records]) => { if (alive) { setAllStudents(users.filter((u) => u.role === 'student')); setHistory(records); } })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [session.schoolId]);
   const classGroups = useMemo(
     () => [...new Set(allStudents.map((s) => s.classGroup).filter(Boolean))],
     [allStudents]
   );
 
-  const [classGroup, setClassGroup] = useState('');
-
-  // classGroups now arrives asynchronously (after the user list loads),
-  // so pick the first one once it's actually available.
-  useEffect(() => {
-    if (!classGroup && classGroups.length > 0) setClassGroup(classGroups[0]);
-  }, [classGroups]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [classGroup, setClassGroup] = useState(classGroups[0] || '');
   const [subject, setSubject] = useState(SUBJECTS[0]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [students, setStudents] = useState([]);
   const [selected, setSelected] = useState({});
   const [justSubmitted, setJustSubmitted] = useState(false);
-  const [history, setHistory] = useState(() => listAttendance(session.schoolId));
 
   // Rebuild the roster whenever the selected class changes.
   useEffect(() => {
+    if (!classGroup && classGroups[0]) {
+      setClassGroup(classGroups[0]);
+      return;
+    }
     const roster = allStudents
       .filter((s) => s.classGroup === classGroup)
       .map((s) => ({ id: s.id, initials: initialsOf(s.name), name: s.name, status: 'present', note: '' }));
@@ -72,18 +71,17 @@ export default function AttendanceView() {
     setSelected((sel) => ({ ...sel, [id]: !sel[id] }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (students.length === 0) return;
-    const record = submitAttendance(session.schoolId, {
-      date,
-      classGroup,
-      subject,
-      counts,
-      roster: students,
-      submittedBy: session.name,
-    });
-    setHistory((h) => [record, ...h]);
-    setJustSubmitted(true);
+    try {
+      const record = await submitAttendance(session.schoolId, {
+        date, classGroup, subject, counts, roster: students,
+      });
+      setHistory((h) => [record, ...h]);
+      setJustSubmitted(true);
+    } catch (e) {
+      setJustSubmitted(false);
+    }
   }
 
   if (classGroups.length === 0) {
